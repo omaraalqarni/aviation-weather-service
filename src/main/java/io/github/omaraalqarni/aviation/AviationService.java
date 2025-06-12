@@ -1,8 +1,11 @@
 package io.github.omaraalqarni.aviation;
 
+import io.github.omaraalqarni.aviation.models.FlightResponse;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 
 public interface AviationService {
-  Future<JsonObject> getFlights(String flightStatus, int limit, int offset, String ArrICAO);
+  Future<FlightResponse> ParseFlights(String rawData);
+
 }
