@@ -6,6 +6,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
 public interface AviationService {
-  Future<FlightResponse> ParseFlights(String rawData);
+  String parseFlights(String flights);
+
 
 }
