@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+// i should cancel all this. get a plain json object and fill it with flight & weather & errors!
+@Deprecated
 @Getter
 @Setter
 @AllArgsConstructor

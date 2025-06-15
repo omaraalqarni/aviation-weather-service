@@ -1,0 +1,75 @@
+{
+  "success": true,
+  "source": "api",
+  "result": [
+    {
+      "pagination": {
+        "limit": 1,
+        "offset": 2,
+        "count": 1,
+        "total": 251583
+      },
+      "data": {
+        "today": [
+          {
+            "flight_date": "2025-06-15",
+            "flight_status": "landed",
+            "departure": {
+              "airport": "Haneda Airport",
+              "timezone": "Asia/Tokyo",
+              "iata": "HND",
+              "icao": "RJTT",
+              "terminal": "1",
+              "gate": "3",
+              "delay": 31,
+              "scheduled": "2025-06-15T14:55:00+00:00",
+              "estimated": "2025-06-15T14:55:00+00:00",
+              "actual": "2025-06-15T15:25:00+00:00",
+              "estimated_runway": "2025-06-15T15:25:00+00:00",
+              "actual_runway": "2025-06-15T15:25:00+00:00"
+            },
+            "arrival": {
+              "airport": "Kumamoto",
+              "timezone": "Asia/Tokyo",
+              "iata": "KMJ",
+              "icao": "RJFT",
+              "terminal": "1",
+              "gate": null,
+              "baggage": null,
+              "scheduled": "2025-06-15T16:40:00+00:00",
+              "delay": 12,
+              "estimated": "2025-06-15T16:51:00+00:00",
+              "actual": "2025-06-15T16:52:00+00:00",
+              "estimated_runway": "2025-06-15T16:52:00+00:00",
+              "actual_runway": "2025-06-15T16:52:00+00:00"
+            },
+            "airline": {
+              "name": "Hawaiian Airlines",
+              "iata": "HA",
+              "icao": "HAL"
+            },
+            "flight": {
+              "number": "5322",
+              "iata": "HA5322",
+              "icao": "HAL5322",
+              "codeshared": {
+                "airline_name": "japan airlines",
+                "airline_iata": "jl",
+                "airline_icao": "jal",
+                "flight_number": "633",
+                "flight_iata": "jl633",
+                "flight_icao": "jal633"
+              }
+            },
+            "aircraft": null,
+            "live": null,
+            "weather": ""
+          }
+        ],
+        "yesterday": [
+        ]
+      }
+    }
+  ],
+  "errors": ""
+}

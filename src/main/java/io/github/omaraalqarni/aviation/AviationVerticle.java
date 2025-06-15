@@ -10,8 +10,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class AviationVerticle extends AbstractVerticle {
@@ -44,9 +42,9 @@ public class AviationVerticle extends AbstractVerticle {
       String offset = ctx.queryParam("offset").getFirst();
       Future<JsonObject> flights = aviationApi.fetchFlights(flightStatus, limit, offset);
       flights.onSuccess(res -> {
-//          converter(res);
+          var organized = converter(res);
           LOGGER.info("HERE");
-          ctx.response().setStatusCode(200).end(res.encodePrettily());
+          ctx.response().setStatusCode(200).end(organized.encodePrettily());
         }
         );
       flights.onFailure(res -> {
@@ -57,33 +55,55 @@ public class AviationVerticle extends AbstractVerticle {
 
   }
 
-  private void converter(JsonObject res) {
+  private JsonObject converter(JsonObject res) {
     JsonObject template = new JsonObject();
-    template.put("success", true);
+
+    template.put("success", true); // hardcoded for now
     template.put("source", "api"); //or db
-    template.put("result", res);
-    filterByDay(JsonObject.mapFrom(res.getJsonArray("data")));
+// add to res lastly
+    JsonArray resultArray = new JsonArray();
 
+    JsonObject sortedFlights = filterFlightsByDay(res.getJsonArray("data"));
+
+    JsonObject dataObj = new JsonObject();
+    dataObj.put("pagination", res.getJsonObject("pagination"));
+    dataObj.put("data", sortedFlights);
+    resultArray.add(dataObj);
+
+    template.put("result",resultArray);
+    template.put("errors","");
+
+    return template;
   }
 
-  private JsonArray filterByDay(JsonObject data){
-    for(int i = 0; i < data.size(); i++){
+  private JsonObject filterFlightsByDay(JsonArray data){
+    LocalDate todayDate = LocalDate.now();
+    LocalDate yesterdayDate = LocalDate.now().minusDays(1);
 
-    }
-    return null;
-  }
-
-  private void sortDays(JsonObject flight){
-    LocalDate date = LocalDate.now();
-    JsonArray days = new JsonArray();
+    JsonObject days = new JsonObject();
     JsonArray today = new JsonArray();
+    JsonObject todayObj = new JsonObject();
+    JsonObject yesterdayObj = new JsonObject();
     JsonArray yesterday = new JsonArray();
-    days.add(today);
-    days.add(yesterday);
-    if (flight.getJsonObject("flight_date").toString().equals(date.toString())){
 
+    for(int i = 0; i < data.size(); i++){
+        JsonObject flight =data.getJsonObject(i);
+        flight.put("weather", ""); //hardcoded
+        var flightDate = flight.getString("flight_date");
+        if (flightDate.equals(todayDate.toString())){
+
+          today.add(flight);
+        }
+        else if (yesterday.size()<10 && flightDate.equals(yesterdayDate.toString())){
+          yesterday.add(flight);
+      }
     }
+
+      days.put("today", today);
+      days.put("yesterday", yesterday);
+    return days;
   }
+
 
   //TODO: will be more reusable later
   void CustomError (RoutingContext ctx, String value){

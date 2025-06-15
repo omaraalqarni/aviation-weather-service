@@ -42,7 +42,7 @@ public class AviationApi {
           promise.complete(asyncRes.result().bodyAsJsonObject());
           LOGGER.info("Successfully fetched data from AviationStack");
           JsonObject res = asyncRes.result().bodyAsJsonObject();
-          LOGGER.info(res);
+//          LOGGER.info(res);
           }
           else {
             LOGGER.info(asyncRes.result().body());
