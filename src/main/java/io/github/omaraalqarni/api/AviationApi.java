@@ -19,7 +19,10 @@ public class AviationApi {
 
   public Future<JsonObject> fetchFlights(String flightStatus, String offset, String limit){
     LOGGER.info("started");
-    String apiKey = "65be09ab80cff2eb0430dc0cab1d3382";
+    String apiKey = System.getenv("AVIATION_API");
+    if (apiKey == null) {
+      throw new RuntimeException("API_KEY environment variable is not set");
+    }
     Promise<JsonObject> promise = Promise.promise();
     var request = webClient
       .get(443, "api.aviationstack.com", "/v1/flights")
