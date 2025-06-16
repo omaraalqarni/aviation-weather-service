@@ -1,16 +1,11 @@
-package io.github.omaraalqarni.aviation.impl;
+package io.github.omaraalqarni.service.impl;
 
-import io.github.omaraalqarni.aviation.AviationApi;
-import io.github.omaraalqarni.aviation.AviationService;
-import io.github.omaraalqarni.aviation.AviationVerticle;
-import io.github.omaraalqarni.aviation.models.FlightResponse;
-import io.vertx.core.Future;
+import io.github.omaraalqarni.service.AviationService;
+import io.github.omaraalqarni.verticle.AviationVerticle;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 
 import java.time.LocalDate;
 
@@ -23,7 +18,6 @@ public class AviationServiceImpl implements AviationService {
 
     template.put("success", true); // hardcoded for now
     template.put("source", "api"); //or db
-// add to res lastly
     JsonArray resultArray = new JsonArray();
 
     JsonObject sortedFlights = filterFlightsByDay(res.getJsonArray("data"));
@@ -46,8 +40,6 @@ public class AviationServiceImpl implements AviationService {
 
     JsonObject days = new JsonObject();
     JsonArray today = new JsonArray();
-    JsonObject todayObj = new JsonObject();
-    JsonObject yesterdayObj = new JsonObject();
     JsonArray yesterday = new JsonArray();
 
     for(int i = 0; i < data.size(); i++){

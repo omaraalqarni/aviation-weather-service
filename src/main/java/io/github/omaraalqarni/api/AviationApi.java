@@ -1,54 +1,57 @@
-package io.github.omaraalqarni.aviation;
+package io.github.omaraalqarni.api;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.impl.logging.Logger;
-import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AviationApi {
   private final WebClient webClient;
-  private static final Logger LOGGER = LoggerFactory.getLogger(AviationApi.class);
+  private static final Logger LOGGER = LogManager.getLogger(AviationApi.class);
+
 
   public AviationApi(Vertx vertx) {
     this.webClient = WebClient.create(vertx);
   }
 
   public Future<JsonObject> fetchFlights(String flightStatus, String offset, String limit){
+    LOGGER.info("started");
     String apiKey = "65be09ab80cff2eb0430dc0cab1d3382";
     Promise<JsonObject> promise = Promise.promise();
     var request = webClient
       .get(443, "api.aviationstack.com", "/v1/flights")
       .ssl(true)
-      .addQueryParam("access_key",apiKey);
 //      .timeout(3000)
-    if (!flightStatus.isEmpty()) {
+//      .addQueryParam("flight_date", String.valueOf(LocalDate.now().minusDays(1)))
+      .addQueryParam("access_key",apiKey);
+
+    if (flightStatus != null) {
       request.addQueryParam("flight_status", flightStatus);
     }
-    if (!limit.isEmpty()) {
+    if (limit != null) {
       request.addQueryParam("limit", limit);
     }
-    if (!offset.isEmpty()) {
+    if (offset != null) {
       request.addQueryParam("offset", offset);
     }
 
       request.send( asyncRes -> {
         if (asyncRes.succeeded()){
           if (asyncRes.result().statusCode() == 200){
-            LOGGER.info("It is 200");
-            LOGGER.info(asyncRes.result().body());
-          promise.complete(asyncRes.result().bodyAsJsonObject());
+//            LOGGER.info(asyncRes.result().body());
+            LOGGER.info("ENDED");
+            promise.complete(asyncRes.result().bodyAsJsonObject());
           LOGGER.info("Successfully fetched data from AviationStack");
-          JsonObject res = asyncRes.result().bodyAsJsonObject();
-//          LOGGER.info(res);
           }
           else {
+            promise.fail(asyncRes.result().bodyAsJsonObject().encodePrettily());
             LOGGER.info(asyncRes.result().body());
           }
         }else{
-          LOGGER.info(String.format("Failed to Fetch from AviationStack API, reason: \n%s",asyncRes.cause().getMessage()));
+          LOGGER.info("Failed to Fetch from AviationStack API, reason: \n{}", asyncRes.cause().getMessage());
           promise.fail(asyncRes.cause());
         }
       });

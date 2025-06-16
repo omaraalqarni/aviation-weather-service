@@ -1,15 +1,16 @@
-package io.github.omaraalqarni.aviation;
+package io.github.omaraalqarni.verticle;
 
-import io.github.omaraalqarni.aviation.impl.AviationServiceImpl;
+import io.github.omaraalqarni.api.AviationApi;
+import io.github.omaraalqarni.service.AviationService;
+import io.github.omaraalqarni.service.impl.AviationServiceImpl;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-
-import java.util.concurrent.atomic.AtomicReference;
 
 public class AviationVerticle extends AbstractVerticle {
   private final Logger LOGGER = LoggerFactory.getLogger(AviationVerticle.class);
@@ -33,29 +34,30 @@ public class AviationVerticle extends AbstractVerticle {
   }
 
   public void getAllFlights(RoutingContext ctx){
-      LOGGER.info("Flights endpoint here");
+    LOGGER.info("Flights endpoint here");
 
-      String flightStatus = ctx.queryParam("flight_status").getFirst();
-      String limit = ctx.queryParam("limit").getFirst();
-      String offset = ctx.queryParam("offset").getFirst();
-      Future<JsonObject> flights = aviationApi.fetchFlights(flightStatus, limit, offset);
-      flights.onSuccess(res -> {
-          JsonObject parsedResponse = aviationService.parseResponse(res);
-          LOGGER.info("HERE");
-          ctx.response().setStatusCode(200).end(parsedResponse.encodePrettily());
-        }
-        );
-      flights.onFailure(res -> {
-          ctx.response().end(String.format("Error: %s",res.toString()));
-      });
+    String flightStatus = ctx.queryParams().get("flight_status");
+    String limit = ctx.queryParams().get("limit");
+    String offset = ctx.queryParams().get("offset");
+
+    Future<JsonObject> flights = aviationApi.fetchFlights(flightStatus, offset, limit);
+    flights.onSuccess(res -> {
+        JsonObject parsedResponse = aviationService.parseResponse(res);
+        LOGGER.info("HERE");
+        ctx.response().setStatusCode(200).end(parsedResponse.encodePrettily());
+      }
+    );
+    flights.onFailure(err -> {
+      var gg= err.getMessage();
+      ctx.response().setStatusCode(500).end(String.format("Error: %s",gg));
+    });
+
+
+
 
 
   }
 
-  //TODO: will be more reusable later
-  void CustomError (RoutingContext ctx, String value){
-    ctx.response().setStatusCode(404).end(String.format("Error, %s cannot be nullable", value));
-  }
 
   public static Router getAviationRouter() {
     return aviationRouter;

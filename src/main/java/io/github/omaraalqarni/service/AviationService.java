@@ -1,4 +1,4 @@
-package io.github.omaraalqarni.aviation;
+package io.github.omaraalqarni.service;
 
 
 import io.vertx.core.json.JsonArray;

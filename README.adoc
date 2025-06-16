@@ -1,8 +1,21 @@
 = Flight-weather-service
 
-image:https://img.shields.io/badge/vert.x-4.5.15-purple.svg[link="https://vertx.io"]
+image:https://img.shields.io/badge/vert.x-4.3.8-purple.svg[link="https://vertx.io"]
 
 This application was generated using http://start.vertx.io
+
+### Tasks
+- [x] Implement AviationVerticle.
+  - [x] Implement `GET/flights`.
+- [x] fetch data from AviationStack.
+- [x] manipulate result to fit the required JSON file.
+- [ ] Implement Weather Verticle
+- [ ] fetch data from WeatherAPI
+- [ ] Implement Event Bus to send the result to Aviation Verticle
+- [ ] Implement Circuit Breaker
+- [ ] make sure to handle all exceptions
+- [ ] implement PostgreSQL Verticle
+- [ ] implement CRUD in db with weather data
 
 == Building
 
@@ -20,12 +33,3 @@ To run your application:
 ```
 ./mvnw clean compile exec:java
 ```
-
-== Help
-
-* https://vertx.io/docs/[Vert.x Documentation]
-* https://stackoverflow.com/questions/tagged/vert.x?sort=newest&pageSize=15[Vert.x Stack Overflow]
-* https://groups.google.com/forum/?fromgroups#!forum/vertx[Vert.x User Group]
-* https://discord.gg/6ry7aqPWXy[Vert.x Discord]
-
-

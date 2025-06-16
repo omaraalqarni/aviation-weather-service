@@ -1,4 +1,4 @@
-package io.github.omaraalqarni.aviation.models;
+package io.github.omaraalqarni.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
