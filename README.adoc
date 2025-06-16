@@ -12,6 +12,9 @@ This application was generated using http://start.vertx.io
 - [ ] Implement Weather Verticle
 - [ ] fetch data from WeatherAPI
 - [ ] Implement Event Bus to send the result to Aviation Verticle
+  - When weather data is ready, send it to 'address'
+  - Aviation verticle waits to consume it.
+  - Aviation verticle appends it in the response
 - [ ] Implement Circuit Breaker
 - [ ] make sure to handle all exceptions
 - [ ] implement PostgreSQL Verticle

@@ -29,7 +29,6 @@ public class AviationVerticle extends AbstractVerticle {
     aviationRouter = Router.router(vertx);
     LOGGER.info("AviationVerticle Started");
 
-
     aviationRouter.get("/flights").handler(this::getAllFlights);
   }
 
