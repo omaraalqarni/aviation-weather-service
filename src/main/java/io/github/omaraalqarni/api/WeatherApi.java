@@ -27,7 +27,6 @@ public class WeatherApi {
     request.send( ar -> {
       if (ar.succeeded()){
         logger.info("Fetching weather is successful");
-        logger.info(ar.result().bodyAsJsonObject().encodePrettily());
         promise.complete(ar.result().bodyAsJsonObject());
       }
       if (ar.failed()){

@@ -5,14 +5,13 @@ import io.github.omaraalqarni.service.DBService;
 import io.github.omaraalqarni.service.impl.DBServiceImpl;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DatabaseVerticle extends AbstractVerticle {
   private DBService dbService;
-  private PgPool pgPool;
+  private final PgPool pgPool;
   private final Logger logger = LoggerFactory.getLogger(DatabaseVerticle.class);
 
 
@@ -30,7 +29,7 @@ public class DatabaseVerticle extends AbstractVerticle {
       JsonArray icaoCodes = message.body();
       logger.info(String.format("ICAO Codes: \n%s",icaoCodes.encodePrettily()));
 
-      if (icaoCodes == null || icaoCodes.isEmpty()) {
+      if (icaoCodes.isEmpty()) {
         logger.info("icao is null or empty");
         message.fail(400, "Missing 'icao_code' in database query request.");
         return;

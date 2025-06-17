@@ -5,13 +5,11 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgPool;
-import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 public class DBServiceImpl implements DBService {
   private final PgPool client;
@@ -32,11 +30,10 @@ public class DBServiceImpl implements DBService {
       .execute(Tuple.of(codeArray))
       .map(rows -> {
         JsonObject result = new JsonObject();
-        rows.forEach(row -> {
+        rows.forEach(row ->
           result.put(row.getString("ident"), new JsonObject()
-            .put("lat", row.getDouble("lat"))
-            .put("lon", row.getDouble("long")));
-        });
+          .put("lat", row.getDouble("lat"))
+          .put("lon", row.getDouble("long"))));
         logger.info("icao res:");
         logger.info(result.encodePrettily());
         return result;

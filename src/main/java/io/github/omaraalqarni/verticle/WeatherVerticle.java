@@ -4,8 +4,6 @@ import io.github.omaraalqarni.api.WeatherApi;
 import io.github.omaraalqarni.common.EventBusAddresses;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,9 +1,9 @@
 package io.github.omaraalqarni.common;
 
+import io.vertx.core.Vertx;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.PoolOptions;
-import io.vertx.core.Vertx;
 
 public final class PostgresConnector {
   private static PgPool client;
