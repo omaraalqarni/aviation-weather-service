@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 public class AviationServiceImpl implements AviationService {
   private final Logger LOGGER = LoggerFactory.getLogger(AviationVerticle.class);
-  private EventBus eventBus;
+  private final EventBus eventBus;
 
   public AviationServiceImpl(EventBus eventBus) {
     this.eventBus = eventBus;
@@ -31,7 +31,7 @@ public class AviationServiceImpl implements AviationService {
   @Override
   public Future<JsonObject> processAllFlights(JsonArray flights) {
     Set<String> icaoCodes = extractICAOCodes(flights);
-    LOGGER.info(icaoCodes);
+//    LOGGER.info(flights);
     return fetchLatLonBulk(icaoCodes).compose(icaoToCoords -> {
       LOGGER.info(String.format("icaotocoords: \n%s",icaoToCoords));
       return attachWeather(flights, icaoToCoords).map(this::filterFlightsByDay);
@@ -70,7 +70,6 @@ public class AviationServiceImpl implements AviationService {
     List<Future> futures = new ArrayList<>();
     LOGGER.info("In attachWeather");
     boolean latlonLookupFailed = icaoToCoords.containsKey("latlon_lookup_failed");
-    JsonObject dbError = latlonLookupFailed ? icaoToCoords.getJsonObject("error") : null;
     for (int i = 0; i < flights.size(); i++) {
       JsonObject flight = flights.getJsonObject(i).copy();
       JsonObject arrival = flight.getJsonObject("arrival");
@@ -79,19 +78,19 @@ public class AviationServiceImpl implements AviationService {
 
       // DB lookup failed entirely or icao not found
       if (icao == null || icao.isBlank()) {
-        arrival.put("weather", createWeatherError("DB", 400, "Missing ICAO code"));
+        arrival.put("weather", createWeatherError(400, "Missing ICAO code"));
         futures.add(Future.succeededFuture(flight));
         continue;
       }
 
       if (latlonLookupFailed) {
-        arrival.put("weather", createWeatherError("DB", 500, icaoToCoords.getJsonObject("error").getString("error_message")));
+        arrival.put("weather", createWeatherError(500, icaoToCoords.getJsonObject("error").getString("error_message")));
         futures.add(Future.succeededFuture(flight));
         continue;
       }
 
       if (!icaoToCoords.containsKey(icao)) {
-        arrival.put("weather", createWeatherError("DB", 404, "ICAO code not found in database"));
+        arrival.put("weather", createWeatherError(404, "ICAO code not found in database"));
         futures.add(Future.succeededFuture(flight));
         continue;
       }
@@ -131,19 +130,19 @@ public class AviationServiceImpl implements AviationService {
 
     return CompositeFuture.all(futures).map(cf -> {
       JsonArray enrichedFlights = new JsonArray();
-      cf.list().forEach(obj -> enrichedFlights.add((JsonObject) obj));
+      cf.list().forEach(enrichedFlights::add);
       return enrichedFlights;
     });
   }
 
-  private JsonObject createWeatherError(String source, int code, String message) {
+  private JsonObject createWeatherError(int code, String message) {
     return new JsonObject()
       .put("success", false)
-      .put("source", source.toLowerCase())
+      .put("source", "DB".toLowerCase())
       .put("result", new JsonObject())
       .put("errors", new JsonArray().add(
         new JsonObject()
-          .put("error_source", source)
+          .put("error_source", "DB")
           .put("error_code", code)
           .put("error_message", message)
       ));
@@ -156,9 +155,7 @@ public class AviationServiceImpl implements AviationService {
     template.put("success", true); // hardcoded for now
     template.put("source", "api"); //or db
 
-    JsonArray resultArray = new JsonArray();
 
-//    JsonObject sortedFlights = filterFlightsByDay(res.getJsonArray("data"));
 
     JsonObject dataObj = new JsonObject();
     dataObj.put("pagination", res.getJsonObject("pagination"));
@@ -185,11 +182,11 @@ public class AviationServiceImpl implements AviationService {
         continue;
       }
 
-      if (date.equals(todayDate.toString())) {
-        today.add(flight);
-      } else if (date.equals(yesterdayDate.toString()) && yesterday.size() < 10) {
+       if (date.equals(yesterdayDate.toString()) && yesterday.size() < 10) {
         yesterday.add(flight);
-      }
+      } else{
+        today.add(flight);
+       }
     }
 
     JsonObject grouped = new JsonObject();
