@@ -51,7 +51,7 @@ public class AviationServiceImpl implements AviationService {
 
   private Future<JsonObject> fetchLatLonBulk(Set<String> iataCodes) {
     return eventBus
-      .request(EventBusAddresses.GET_LAT_LONG_BULK, new JsonArray(new ArrayList<>(iataCodes)))
+      .request(EventBusAddresses.GET_LAT_LON_BULK, new JsonArray(new ArrayList<>(iataCodes)))
       .map(reply -> JsonObject.mapFrom(reply.body()))
       .recover(err -> {
         LOGGER.info("Reached recover in fetchLatLonBulk");
@@ -95,25 +95,49 @@ public class AviationServiceImpl implements AviationService {
         continue;
       }
 
-      JsonObject latLong = icaoToCoords.getJsonObject(icao);
-      LOGGER.info(latLong);
+      JsonObject latLon = icaoToCoords.getJsonObject(icao);
+      LOGGER.info(latLon);
 
-      Future<JsonObject> future = eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA, latLong)
+      Future<JsonObject> future = eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_API, latLon)
         .map(resp -> {
-          LOGGER.info("Requested from GET_WEATHER_DATA");
+          LOGGER.info("Requested from API GET_WEATHER_DATA");
           JsonObject weatherPayload = new JsonObject()
             .put("success", true)
             .put("source", "api")
             .put("result", resp.body())
             .put("errors", new JsonArray());
 
+          JsonObject dbWeather = new JsonObject()
+            .put("lat", latLon.getDouble("lat"))
+            .put("lon", latLon.getDouble("lon"))
+            .put("weather_data", resp.body());
+
+          eventBus.<JsonObject>request(EventBusAddresses.SAVE_WEATHER_DATA, dbWeather);
+
           arrival.put("weather", weatherPayload);
           return flight;
-        })
-        .recover(err -> {
+        }).recover(apiErr -> {
+          LOGGER.info("Couldn't find weather data on API, trying DB");
+          return eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_DB, latLon)
+            .map(dbResp -> {
+              JsonObject weatherPayload = new JsonObject()
+                .put("success", true)
+                .put("source", "db")
+                .put("result", dbResp.body())
+                .put("errors", new JsonArray().add(new JsonObject()
+                  .put("error_source", "api.openweathermap.org/data/2.5/weather")
+                  .put("error_code", 500)
+                  .put("error_message", apiErr.getMessage())
+                ));
+              arrival.put("weather", weatherPayload);
+              LOGGER.info("Retrieved weather data from DB successfully");
+              return flight;
+            });
+        }).recover(err -> {
+          LOGGER.info("Couldn't find weather data on DB, returning error");
           JsonObject weatherError = new JsonObject()
             .put("success", false)
-            .put("source", "api")
+            .put("source", "db")
             .put("result", new JsonObject())
             .put("errors", new JsonArray().add(new JsonObject()
               .put("error_source", "api.openweathermap.org/data/2.5/weather")
@@ -128,6 +152,7 @@ public class AviationServiceImpl implements AviationService {
       futures.add(future);
     }
 
+
     return CompositeFuture.all(futures).map(cf -> {
       JsonArray enrichedFlights = new JsonArray();
       cf.list().forEach(enrichedFlights::add);
@@ -138,10 +163,11 @@ public class AviationServiceImpl implements AviationService {
   private JsonObject createWeatherError(int code, String message) {
     return new JsonObject()
       .put("success", false)
-      .put("source", "DB".toLowerCase())
+      .put("source", "api")
       .put("result", new JsonObject())
       .put("errors", new JsonArray().add(
         new JsonObject()
+          .put("error", "Failed to convert ICAO to coordinates")
           .put("error_source", "DB")
           .put("error_code", code)
           .put("error_message", message)
@@ -152,8 +178,8 @@ public class AviationServiceImpl implements AviationService {
 
   public JsonObject parseResponse(JsonObject res, JsonObject groupedData) {
     JsonObject template = new JsonObject();
-    template.put("success", true); // hardcoded for now
-    template.put("source", "api"); //or db
+    template.put("success", true);
+    template.put("source", "api");
 
 
 

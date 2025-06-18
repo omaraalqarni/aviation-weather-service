@@ -18,7 +18,7 @@ public class WeatherVerticle extends AbstractVerticle {
   @Override
   public void start() {
 
-    vertx.eventBus().consumer(EventBusAddresses.GET_WEATHER_DATA, message -> {
+    vertx.eventBus().consumer(EventBusAddresses.GET_WEATHER_DATA_API, message -> {
       logger.info("Consumed GET_WEATHER_DATA");
       JsonObject body = (JsonObject) message.body();
       double lat = body.getDouble("lat");
@@ -26,7 +26,13 @@ public class WeatherVerticle extends AbstractVerticle {
       logger.info(String.format("Lat: %.4f Long: %.4f", lat,lon));
 
       weatherApi.fetchWeatherData(lat,lon)
-        .onSuccess(message::reply)
+//        message::reply
+        .onSuccess(res ->{
+          logger.info(res.getClass().getName());
+          if (res.getClass().getName().equals("String")){
+
+          }
+        })
         .onFailure(message::reply);
     });
 

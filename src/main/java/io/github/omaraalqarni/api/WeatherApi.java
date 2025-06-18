@@ -25,12 +25,13 @@ public class WeatherApi {
       .addQueryParam("lon", String.valueOf(lon));
 
     request.send( ar -> {
-      if (ar.succeeded()){
+      if (ar.result().statusCode() != 401){
         logger.info("Fetching weather is successful");
         promise.complete(ar.result().bodyAsJsonObject());
       }
-      if (ar.failed()){
-        logger.info(ar.cause().getMessage());
+      else if (ar.succeeded()){
+        promise.fail("connected to API but failed");
+      }else{
         promise.fail(ar.cause().getMessage());
       }
       });
