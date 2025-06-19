@@ -7,6 +7,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
@@ -28,6 +29,10 @@ public class AviationVerticle extends AbstractVerticle {
 
     aviationRouter = Router.router(vertx);
     LOGGER.info("AviationVerticle Started");
+
+//    JsonObject coords = IcaoLoaderVerticle.icaoObj.getJsonObject("OMDB");
+//    LOGGER.info(String.format("LATLONG RETRIEVED FROM JSON IS: %s", coords.encodePrettily()));
+
 
     aviationRouter.get("/flights").handler(this::getAllFlights);
 

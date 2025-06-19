@@ -37,9 +37,23 @@ public class DatabaseVerticle extends AbstractVerticle {
       }
 
 
-      dbService.getAirportCoordinates(icaoCodes)
-        .onSuccess(message::reply)
-        .onFailure(message::reply);
+      JsonObject result = new JsonObject();
+
+      for (int i = 0; i < icaoCodes.size(); i++) {
+        String code = icaoCodes.getString(i);
+        JsonObject coords = IcaoLoaderVerticle.icaoObj.getJsonObject(code);
+
+        if (coords != null) {
+          result.put(code, coords);
+        } else {
+          logger.warn("Missing ICAO in file: " + code);
+        }
+      }
+
+      message.reply(result);
+//      dbService.getAirportCoordinates(icaoCodes)
+//        .onSuccess(message::reply)
+//        .onFailure(message::reply);
 
     });
     vertx.eventBus().<JsonObject>consumer(EventBusAddresses.SAVE_WEATHER_DATA, message -> {

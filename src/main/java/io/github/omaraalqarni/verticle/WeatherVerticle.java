@@ -26,13 +26,8 @@ public class WeatherVerticle extends AbstractVerticle {
       logger.info(String.format("Lat: %.4f Long: %.4f", lat,lon));
 
       weatherApi.fetchWeatherData(lat,lon)
-//        message::reply
-        .onSuccess(res ->{
-          logger.info(res.getClass().getName());
-          if (res.getClass().getName().equals("String")){
-
-          }
-        })
+//
+        .onSuccess(message::reply)
         .onFailure(message::reply);
     });
 

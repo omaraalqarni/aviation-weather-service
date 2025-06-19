@@ -10,8 +10,12 @@ import org.slf4j.LoggerFactory;
 
 
 public class WeatherApi {
-  private final WebClient webClient = WebClient.create(Vertx.vertx());
+  private final WebClient webClient;
   private final Logger logger = LoggerFactory.getLogger(WeatherApi.class);
+
+  public WeatherApi(Vertx vertx) {
+    this.webClient = WebClient.create(vertx);
+  }
 
   public Future<JsonObject> fetchWeatherData(double lat, double lon){
     Promise<JsonObject> promise = Promise.promise();

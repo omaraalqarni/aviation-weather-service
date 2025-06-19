@@ -12,10 +12,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class AviationServiceImpl implements AviationService {
@@ -67,6 +64,7 @@ public class AviationServiceImpl implements AviationService {
 
   private Future<JsonArray> attachWeather(JsonArray flights, JsonObject icaoToCoords) {
     List<Future> futures = new ArrayList<>();
+    Map<String, Future<JsonObject>> weatherCache = new HashMap<>();
     LOGGER.info("In attachWeather");
     boolean latlonLookupFailed = icaoToCoords.containsKey("latlon_lookup_failed");
     for (int i = 0; i < flights.size(); i++) {
@@ -96,60 +94,48 @@ public class AviationServiceImpl implements AviationService {
 
       JsonObject latLon = icaoToCoords.getJsonObject(icao);
       LOGGER.info(latLon);
-
-      Future<JsonObject> future = eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_API, latLon)
-        .map(resp -> {
-          LOGGER.info("Requested from API GET_WEATHER_DATA");
-          JsonObject weatherPayload = new JsonObject()
+      Future<JsonObject> weatherFuture = weatherCache.computeIfAbsent(icao, k ->
+        eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_API, latLon)
+        .map(resp -> new JsonObject()
             .put("success", true)
             .put("source", "api")
             .put("result", resp.body())
-            .put("errors", new JsonArray());
-
-
-          arrival.put("weather", weatherPayload);
-          return flight;
-        }).recover(apiErr -> {
-          LOGGER.info("Couldn't find weather data on API, trying DB");
-          return eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_DB, latLon)
-            .map(dbResp -> {
-              JsonObject weatherPayload = new JsonObject()
+            .put("errors", new JsonArray()))
+          .recover(apiErr ->
+            eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_DB, latLon)
+            .map(dbResp -> new JsonObject()
                 .put("success", true)
                 .put("source", "db")
                 .put("result", dbResp.body())
-                .put("errors", new JsonArray().add(new JsonObject()
+                .put("errors", new JsonArray().add(
+                  new JsonObject()
                   .put("error_source", "api.openweathermap.org/data/2.5/weather")
                   .put("error_code", 500)
                   .put("error_message", apiErr.getMessage())
-                ));
-              arrival.put("weather", weatherPayload);
-              LOGGER.info("Retrieved weather data from DB successfully");
-              return flight;
-            });
-        })
-        .recover(err -> {
-          LOGGER.info("Couldn't find weather data on DB, returning error");
-          JsonObject weatherError = new JsonObject()
-            .put("success", false)
-            .put("source", "db")
-            .put("result", new JsonObject())
-            .put("errors", new JsonArray().add(new JsonObject()
-              .put("error_source", "api.openweathermap.org/data/2.5/weather")
-              .put("error_code", 500)
-              .put("error_message", err.getMessage())
-            ));
+                ))
+            )
+        )
+        .recover(err -> Future.succeededFuture(new JsonObject()
+          .put("success", false)
+          .put("source", "db")
+          .put("result", new JsonObject())
+          .put("errors", new JsonArray().add(new JsonObject()
+            .put("error_source", "db")
+            .put("error_code", 500)
+            .put("error_message", err.getMessage())
+          ))))
+      );
 
-          arrival.put("weather", weatherError);
-          return Future.succeededFuture(flight);
-        });
-
-      futures.add(future);
+      Future<JsonObject> enrichedFlight = weatherFuture.map(weather -> {
+        arrival.put("weather", weather);
+        return flight;
+      });
+      futures.add(enrichedFlight);
     }
 
-
-    return CompositeFuture.all(futures).map(cf -> {
+    return CompositeFuture.all(futures).map(compositeFuture -> {
       JsonArray enrichedFlights = new JsonArray();
-      cf.list().forEach(enrichedFlights::add);
+      compositeFuture.list().forEach(enrichedFlights::add);
       return enrichedFlights;
     });
   }
