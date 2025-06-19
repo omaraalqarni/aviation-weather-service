@@ -27,14 +27,13 @@ public class AviationServiceImpl implements AviationService {
   }
 
 
-
   @Override
   public Future<JsonObject> processAllFlights(JsonArray flights) {
     Set<String> icaoCodes = extractICAOCodes(flights);
 //    LOGGER.info(flights);
     return fetchLatLonBulk(icaoCodes).compose(icaoToCoords -> {
-      LOGGER.info(String.format("icaotocoords: \n%s",icaoToCoords));
-      return attachWeather(flights, icaoToCoords).map(this::filterFlightsByDay);
+        LOGGER.info(String.format("icaotocoords: \n%s", icaoToCoords));
+        return attachWeather(flights, icaoToCoords).map(this::filterFlightsByDay);
       }
 
     );
@@ -107,12 +106,6 @@ public class AviationServiceImpl implements AviationService {
             .put("result", resp.body())
             .put("errors", new JsonArray());
 
-          JsonObject dbWeather = new JsonObject()
-            .put("lat", latLon.getDouble("lat"))
-            .put("lon", latLon.getDouble("lon"))
-            .put("weather_data", resp.body());
-
-          eventBus.<JsonObject>request(EventBusAddresses.SAVE_WEATHER_DATA, dbWeather);
 
           arrival.put("weather", weatherPayload);
           return flight;
@@ -133,7 +126,8 @@ public class AviationServiceImpl implements AviationService {
               LOGGER.info("Retrieved weather data from DB successfully");
               return flight;
             });
-        }).recover(err -> {
+        })
+        .recover(err -> {
           LOGGER.info("Couldn't find weather data on DB, returning error");
           JsonObject weatherError = new JsonObject()
             .put("success", false)
@@ -175,12 +169,10 @@ public class AviationServiceImpl implements AviationService {
   }
 
 
-
   public JsonObject parseResponse(JsonObject res, JsonObject groupedData) {
     JsonObject template = new JsonObject();
     template.put("success", true);
     template.put("source", "api");
-
 
 
     JsonObject dataObj = new JsonObject();
@@ -189,7 +181,7 @@ public class AviationServiceImpl implements AviationService {
 
 
     template.put("result", new JsonArray().add(dataObj));
-    template.put("errors","");
+    template.put("errors", "");
 
     return template;
   }
@@ -197,28 +189,60 @@ public class AviationServiceImpl implements AviationService {
   public JsonObject filterFlightsByDay(JsonArray data) {
     LocalDate todayDate = LocalDate.now();
     LocalDate yesterdayDate = todayDate.minusDays(1);
+    LocalDate tomorrowDate = todayDate.plusDays(1);
 
+    JsonArray tomorrow = new JsonArray();
     JsonArray today = new JsonArray();
     JsonArray yesterday = new JsonArray();
 
     for (int i = 0; i < data.size(); i++) {
       JsonObject flight = data.getJsonObject(i);
       String date = flight.getString("flight_date");
-      if (date == null){
+      if (date == null) {
         continue;
       }
-
-       if (date.equals(yesterdayDate.toString()) && yesterday.size() < 10) {
-        yesterday.add(flight);
-      } else{
+      if (date.equals(todayDate.toString())) {
         today.add(flight);
-       }
+      } else if (date.equals(tomorrowDate.toString())) {
+        tomorrow.add(flight);
+      } else if (date.equals(yesterdayDate.toString()) && yesterday.size() < 10) {
+        yesterday.add(flight);
+      }
     }
 
     JsonObject grouped = new JsonObject();
+    grouped.put("tomorrow", tomorrow);
     grouped.put("today", today);
     grouped.put("yesterday", yesterday);
     return grouped;
+  }
+
+  public void saveWeatherDataToDb(JsonObject data) {
+
+    data.getJsonArray("yesterday", new JsonArray())
+      .forEach(flightData -> doSaveWeatherData((JsonObject) flightData));
+    data.getJsonArray("today", new JsonArray())
+      .forEach(flightData -> doSaveWeatherData((JsonObject) flightData));
+    data.getJsonArray("tomorrow", new JsonArray())
+      .forEach(flightData -> doSaveWeatherData((JsonObject) flightData));
+  }
+
+
+
+  private void doSaveWeatherData(JsonObject flight) {
+    JsonObject weatherData = flight
+      .getJsonObject("arrival", new JsonObject())
+      .getJsonObject("weather");
+    Double lat = weatherData.getDouble("lat");
+    LOGGER.info(String.format("Latitude in doSaveData: %.4f", lat));
+    Double lon = weatherData.getDouble("lon");
+    LOGGER.info(String.format("Latitude in doSaveData: %.4f", lon));
+    JsonObject toBeSaved = new JsonObject()
+      .put("lat", lat)
+      .put("lon", lon)
+      .put("weather_data", weatherData);
+    eventBus.<JsonObject>request(EventBusAddresses.SAVE_WEATHER_DATA, toBeSaved);
+
   }
 
 

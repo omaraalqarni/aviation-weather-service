@@ -40,17 +40,24 @@ public class AviationVerticle extends AbstractVerticle {
     String limit = ctx.queryParams().get("limit");
     String offset = ctx.queryParams().get("offset");
 
+
+    LOGGER.info("Calling aviation api");
     aviationApi.fetchFlights(flightStatus, offset, limit)
         .compose(res -> {
+          LOGGER.info("Calling aviation api");
           JsonArray rawFlights = res.getJsonArray("data");
           return aviationService.processAllFlights(rawFlights)
             .map(grouped -> aviationService.parseResponse(res, grouped));
         })
-        .onSuccess(finalResponse -> ctx.response()
-          .setStatusCode(200)
-          .putHeader("Content-Type", "application/json")
-          .end(finalResponse.encodePrettily()))
+        .onSuccess(finalResponse -> {
+           ctx.response()
+            .setStatusCode(200)
+            .putHeader("Content-Type", "application/json")
+            .end(finalResponse.encodePrettily());
+//         aviationService.saveWeatherData();
+        })
       .onFailure(err -> {
+        LOGGER.info("end aviation api");
       var gg= err.getMessage();
       ctx.response().setStatusCode(500).end(String.format("Error: %s",gg));
     });
