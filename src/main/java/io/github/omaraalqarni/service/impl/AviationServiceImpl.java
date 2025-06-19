@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class AviationServiceImpl implements AviationService {
   private final Logger LOGGER = LoggerFactory.getLogger(AviationVerticle.class);
   private final EventBus eventBus;
+  Map<String, Future<JsonObject>> weatherCache = new HashMap<>();
 
   public AviationServiceImpl(EventBus eventBus) {
     this.eventBus = eventBus;
@@ -64,7 +65,7 @@ public class AviationServiceImpl implements AviationService {
 
   private Future<JsonArray> attachWeather(JsonArray flights, JsonObject icaoToCoords) {
     List<Future> futures = new ArrayList<>();
-    Map<String, Future<JsonObject>> weatherCache = new HashMap<>();
+
     LOGGER.info("In attachWeather");
     boolean latlonLookupFailed = icaoToCoords.containsKey("latlon_lookup_failed");
     for (int i = 0; i < flights.size(); i++) {

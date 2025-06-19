@@ -44,7 +44,9 @@ public class AviationApi {
         if (asyncRes.succeeded()){
           if (asyncRes.result().statusCode() == 200){
             promise.complete(asyncRes.result().bodyAsJsonObject());
-          LOGGER.info("Successfully fetched data from AviationStack");
+
+            LOGGER.info("Successfully fetched data from AviationStack");
+
           }
           else {
             promise.fail(asyncRes.result().bodyAsJsonObject().encodePrettily());

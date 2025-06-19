@@ -49,7 +49,6 @@ public class AviationVerticle extends AbstractVerticle {
     LOGGER.info("Calling aviation api");
     aviationApi.fetchFlights(flightStatus, offset, limit)
         .compose(res -> {
-          LOGGER.info("Calling aviation api");
           JsonArray rawFlights = res.getJsonArray("data");
           return aviationService.processAllFlights(rawFlights)
             .map(grouped -> aviationService.parseResponse(res, grouped));
