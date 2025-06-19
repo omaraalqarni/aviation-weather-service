@@ -18,7 +18,6 @@ public class AviationApi {
   }
 
   public Future<JsonObject> fetchFlights(String flightStatus, String offset, String limit){
-    LOGGER.info("started");
     String apiKey = System.getenv("AVIATION_API");
     if (apiKey == null) {
       throw new RuntimeException("API_KEY environment variable is not set");
@@ -44,10 +43,10 @@ public class AviationApi {
       request.send( asyncRes -> {
         if (asyncRes.succeeded()){
           if (asyncRes.result().statusCode() == 200){
-//            LOGGER.info(asyncRes.result().body());
-            LOGGER.info("ENDED");
             promise.complete(asyncRes.result().bodyAsJsonObject());
-          LOGGER.info("Successfully fetched data from AviationStack");
+
+            LOGGER.info("Successfully fetched data from AviationStack");
+
           }
           else {
             promise.fail(asyncRes.result().bodyAsJsonObject().encodePrettily());

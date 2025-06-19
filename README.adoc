@@ -4,35 +4,42 @@ image:https://img.shields.io/badge/vert.x-4.3.8-purple.svg[link="https://vertx.i
 
 This application was generated using http://start.vertx.io
 
-### Tasks
+=== Tasks
 - [x] Implement AviationVerticle.
   - [x] Implement `GET/flights`.
 - [x] fetch data from AviationStack.
 - [x] manipulate result to fit the required JSON file.
-- [ ] Implement Weather Verticle
-- [ ] fetch data from WeatherAPI
-- [ ] Implement Event Bus to send the result to Aviation Verticle
+- [x] Implement Weather Verticle
+- [x] fetch data from WeatherAPI
+- [x] Implement Event Bus to send the result to Aviation Verticle
   - When weather data is ready, send it to 'address'
   - Aviation verticle waits to consume it.
   - Aviation verticle appends it in the response
 - [ ] Implement Circuit Breaker
 - [ ] make sure to handle all exceptions
-- [ ] implement PostgreSQL Verticle
-- [ ] implement CRUD in db with weather data
+- [x] implement Database Verticle
+- [x] implement db functions with weather data
+- [ ] save each weather data api call to db
 
 == Building
 
 To launch your tests:
-```
+
+[source]
+----
 ./mvnw clean test
-```
+----
 
 To package your application:
-```
+
+[source]
+----
 ./mvnw clean package
-```
+----
 
 To run your application:
-```
+
+[source]
+----
 ./mvnw clean compile exec:java
-```
+----
