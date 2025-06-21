@@ -54,7 +54,7 @@ public class AviationApi {
           }
         }else{
           LOGGER.info("Failed to Fetch from AviationStack API, reason: \n{}", asyncRes.cause().getMessage());
-          promise.fail(asyncRes.cause());
+          promise.fail(asyncRes.cause().getMessage());
         }
       });
     return promise.future();

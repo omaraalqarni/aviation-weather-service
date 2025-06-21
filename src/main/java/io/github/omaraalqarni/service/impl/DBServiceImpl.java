@@ -14,12 +14,12 @@ import java.util.NoSuchElementException;
 
 public class DBServiceImpl implements DBService {
   private final PgPool client;
-  private final Logger logger = LoggerFactory.getLogger(DBServiceImpl.class);
 
   public DBServiceImpl(PgPool client) {
     this.client = client;
   }
 
+  @Deprecated
   @Override
   public Future<JsonObject> getAirportCoordinates(JsonArray icaoCodes) {
     String sqlQuery = "SELECT ident, lat, lon FROM airports WHERE ident = ANY($1)\n";
