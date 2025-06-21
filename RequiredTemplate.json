@@ -1,0 +1,93 @@
+{
+  "success": true,
+  "source": "api",
+  "result": [
+    {
+      "pagination": {
+        "limit": 1,
+        "offset": 0,
+        "count": 1,
+        "total": 207883
+      },
+      "data": {
+        "today": [
+          {
+            "flight_date": "2021-09-13",
+            "flight_status": "landed",
+            "departure": {
+              "airport": "Adelaide International Airport",
+              "timezone": "Australia/Adelaide",
+              "iata": "ADL",
+              "icao": "YPAD",
+              "terminal": "1",
+              "gate": "14",
+              "delay": 3,
+              "scheduled": "2021-09-13T06:00:00+00:00",
+              "estimated": "2021-09-13T06:00:00+00:00",
+              "actual": "2021-09-13T06:02:00+00:00",
+              "estimated_runway": "2021-09-13T06:02:00+00:00",
+              "actual_runway": "2021-09-13T06:02:00+00:00"
+            },
+            "arrival": {
+              "airport": "Canberra",
+              "timezone": "Australia/Sydney",
+              "iata": "CBR",
+              "icao": "YSCB",
+              "terminal": "1",
+              "gate": "11",
+              "baggage": null,
+              "delay": null,
+              "scheduled": "2021-09-13T08:05:00+00:00",
+              "estimated": "2021-09-13T08:05:00+00:00",
+              "actual": "2021-09-13T07:49:00+00:00",
+              "estimated_runway": "2021-09-13T07:49:00+00:00",
+              "actual_runway": "2021-09-13T07:49:00+00:00",
+
+              "weather": {
+                "success": true,
+                "source": "api/db",
+                "result": [],
+                "errors": [
+                  {
+                    "error_source": "api.openweathermap.org/data/2.5/weather",
+                    "error_code": 404,
+                    "error_message": "user is not authorized "
+                  },
+                  {
+                    "error_source": "DB",
+                    "error_code": 404,
+                    "error_message": "access denied to the DB"
+                  }
+                ]
+              }
+            },
+            "airline": {
+              "name": "Air New Zealand",
+              "iata": "NZ",
+              "icao": "ANZ"
+            },
+            "flight": {
+              "number": "7072",
+              "iata": "NZ7072",
+              "icao": "ANZ7072",
+              "codeshared": {
+                "airline_name": "qantas",
+                "airline_iata": "qf",
+                "airline_icao": "qfa",
+                "flight_number": "724",
+                "flight_iata": "qf724",
+                "flight_icao": "qfa724"
+              }
+            },
+            "aircraft": null,
+            "live": null
+          }
+        ]
+      },
+      "yesterday": [
+        /* same data sturcture as (today)*/
+      ]
+    }
+  ],
+  "errors": []
+}
