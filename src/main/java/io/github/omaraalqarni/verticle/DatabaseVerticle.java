@@ -28,7 +28,6 @@ public class DatabaseVerticle extends AbstractVerticle {
     vertx.eventBus().<JsonArray>consumer(EventBusAddresses.GET_LAT_LON_BULK, message -> {
       logger.info("Consumed GET_LAT_LON");
       JsonArray icaoCodes = message.body();
-      logger.info(String.format("ICAO Codes: \n%s", icaoCodes.encodePrettily()));
 
       if (icaoCodes.isEmpty()) {
         logger.info("icao is null or empty");
