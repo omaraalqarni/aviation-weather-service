@@ -6,8 +6,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Tuple;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -33,8 +31,8 @@ public class DBServiceImpl implements DBService {
         JsonObject result = new JsonObject();
         rows.forEach(row ->
           result.put(row.getString("ident"), new JsonObject()
-          .put("lat", row.getDouble("lat"))
-          .put("lon", row.getDouble("lon"))));
+            .put("lat", row.getDouble("lat"))
+            .put("lon", row.getDouble("lon"))));
         return result;
       });
   }
@@ -62,7 +60,4 @@ public class DBServiceImpl implements DBService {
         }
       });
   }
-
-
-
 }

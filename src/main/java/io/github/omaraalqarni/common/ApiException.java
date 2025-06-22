@@ -1,11 +1,11 @@
 package io.github.omaraalqarni.common;
 
-public class ApiException extends RuntimeException{
+public class ApiException extends RuntimeException {
   private final int statusCode;
   private final String apiErrorCode;
 
 
-  public ApiException(String message, int StatusCode ){
+  public ApiException(String message, int StatusCode) {
     super(message);
     this.statusCode = StatusCode;
     this.apiErrorCode = null;

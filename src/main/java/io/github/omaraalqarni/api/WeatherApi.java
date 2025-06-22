@@ -17,30 +17,27 @@ public class WeatherApi {
     this.webClient = WebClient.create(vertx);
   }
 
-  public Future<JsonObject> fetchWeatherData(double lat, double lon){
+  public Future<JsonObject> fetchWeatherData(double lat, double lon) {
     Promise<JsonObject> promise = Promise.promise();
 
     String apiKey = System.getenv("WEATHER_API");
-
-    var request = webClient.get(443,"api.openweathermap.org","/data/3.0/onecall")
+    if (apiKey == null) {
+      throw new RuntimeException("API_KEY environment variable is not set");
+    }
+    var request = webClient.get(443, "api.openweathermap.org", "/data/3.0/onecall")
       .ssl(true)
       .addQueryParam("appid", apiKey)
       .addQueryParam("lat", String.valueOf(lat))
       .addQueryParam("lon", String.valueOf(lon));
 
-    request.send( ar -> {
-//      if (ar.result().statusCode() != 401){
-//
-//      }
-      if (ar.succeeded()){
+    request.send(ar -> {
+      if (ar.succeeded()) {
         logger.info("Fetching weather is successful");
         promise.complete(ar.result().bodyAsJsonObject());
-      }else{
+      } else {
         promise.fail(ar.cause().getMessage());
       }
-      });
-
-
+    });
     return promise.future();
   }
 }

@@ -23,10 +23,9 @@ public class WeatherVerticle extends AbstractVerticle {
       JsonObject body = (JsonObject) message.body();
       double lat = body.getDouble("lat");
       double lon = body.getDouble("lon");
-      logger.info(String.format("Lat: %.4f Long: %.4f", lat,lon));
+      logger.info(String.format("Lat: %.4f Long: %.4f", lat, lon));
 
-      weatherApi.fetchWeatherData(lat,lon)
-//
+      weatherApi.fetchWeatherData(lat, lon)
         .onSuccess(message::reply)
         .onFailure(message::reply);
     });

@@ -8,7 +8,8 @@ import io.vertx.sqlclient.PoolOptions;
 public final class PostgresConnector {
   private static PgPool client;
 
-  private PostgresConnector() {}
+  private PostgresConnector() {
+  }
 
   public static PgPool getClient(Vertx vertx) {
     if (client == null) {

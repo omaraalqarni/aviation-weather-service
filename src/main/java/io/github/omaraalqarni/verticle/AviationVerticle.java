@@ -34,7 +34,7 @@ public class AviationVerticle extends AbstractVerticle {
 
   }
 
-  public void getAllFlights(RoutingContext ctx){
+  public void getAllFlights(RoutingContext ctx) {
     LOGGER.info("Flights endpoint here");
 
     String flightStatus = ctx.queryParams().get("flight_status");
@@ -44,25 +44,25 @@ public class AviationVerticle extends AbstractVerticle {
 
     LOGGER.info("Calling aviation api");
     aviationApi.fetchFlights(flightStatus, offset, limit)
-        .compose(res -> {
-          JsonArray rawFlights = res.getJsonArray("data");
-          return aviationService.processAllFlights(rawFlights)
-            .map(grouped -> aviationService.parseResponse(res, grouped));
-        })
-        .onSuccess(finalResponse -> {
-           ctx.response()
-            .setStatusCode(200)
-            .putHeader("Content-Type", "application/json")
-            .end(finalResponse.encodePrettily());
+      .compose(res -> {
+        JsonArray rawFlights = res.getJsonArray("data");
+        return aviationService.processAllFlights(rawFlights)
+          .map(grouped -> aviationService.parseResponse(res, grouped));
+      })
+      .onSuccess(finalResponse -> {
+        ctx.response()
+          .setStatusCode(200)
+          .putHeader("Content-Type", "application/json")
+          .end(finalResponse.encodePrettily());
 //         aviationService.saveWeatherData();
-        })
+      })
       .onFailure(err -> {
         LOGGER.info("end aviation api");
-      var error = err.getMessage();
-      ctx.response()
-        .setStatusCode(500)
-        .end(String.format("Error: %s",error));
-    });
+        var error = err.getMessage();
+        ctx.response()
+          .setStatusCode(500)
+          .end(String.format("Error: %s", error));
+      });
   }
 
   public static Router getAviationRouter() {
@@ -70,7 +70,7 @@ public class AviationVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void stop()  {
+  public void stop() {
 
   }
 }
