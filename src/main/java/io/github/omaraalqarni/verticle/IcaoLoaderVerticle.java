@@ -34,7 +34,6 @@ public class IcaoLoaderVerticle extends AbstractVerticle {
       .onSuccess(config -> {
         icaoObj = config;
         LOGGER.info("Loaded ICAO coordinates from file.");
-//        LOGGER.info(icaoObj.getJsonObject("OMDB").encodePrettily());
         startPromise.complete();
       })
       .onFailure(err -> {

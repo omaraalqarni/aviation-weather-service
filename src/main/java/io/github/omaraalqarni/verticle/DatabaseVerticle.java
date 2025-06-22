@@ -45,16 +45,12 @@ public class DatabaseVerticle extends AbstractVerticle {
         if (coords != null) {
           result.put(code, coords);
         } else {
-          logger.warn("Missing ICAO in file: " + code);
+          logger.warn("Missing ICAO in file: {}", code);
         }
       }
-
       message.reply(result);
-//      dbService.getAirportCoordinates(icaoCodes)
-//        .onSuccess(message::reply)
-//        .onFailure(message::reply);
-
     });
+
     vertx.eventBus().<JsonObject>consumer(EventBusAddresses.SAVE_WEATHER_DATA, message -> {
       double lat = message.body().getDouble("lat");
       double lon = message.body().getDouble("lon");
@@ -73,7 +69,6 @@ public class DatabaseVerticle extends AbstractVerticle {
 
     });
 
-
     vertx.eventBus().<JsonObject>consumer(EventBusAddresses.GET_WEATHER_DATA_DB, message -> {
       double lat = message.body().getDouble("lat");
       double lon = message.body().getDouble("lon");
@@ -87,7 +82,6 @@ public class DatabaseVerticle extends AbstractVerticle {
           message.fail(404, error.encode());
         });
     });
-
 
   }
 
