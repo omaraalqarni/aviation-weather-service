@@ -29,12 +29,32 @@ public class AviationServiceImpl implements AviationService {
   public Future<JsonObject> processAllFlights(JsonArray flights) {
     Set<String> icaoCodes = extractICAOCodes(flights);
 //    LOGGER.info(flights);
-    return fetchLatLonBulk(icaoCodes).compose(icaoToCoords -> {
-        LOGGER.info(String.format("icaotocoords: \n%s", icaoToCoords));
-        return attachWeather(flights, icaoToCoords).map(this::filterFlightsByDay);
-      }
+    return fetchLatLonBulk(icaoCodes)
+      .compose(latLongData -> {
+        return attachWeather(flights, latLongData)
+          .map(enrichedFlights -> {
+            JsonObject groupedFlights = filterFlightsByDay(enrichedFlights);
+            return groupedFlights;
+          });
+      });
+  }
 
-    );
+
+  private Future<JsonObject> fetchLatLonBulk(Set<String> iataCodes) {
+    return eventBus
+      .request(EventBusAddresses.GET_LAT_LON_BULK, new JsonArray(new ArrayList<>(iataCodes)))
+      .map(reply -> JsonObject.mapFrom(reply.body()))
+      .recover(err -> {
+        LOGGER.info("Failed to fetch Lat Lon");
+        // Handle fallback if necessary
+        JsonObject error = new JsonObject()
+          .put("latlon_lookup_failed", true)
+          .put("error", new JsonObject()
+            .put("error_source", "DB")
+            .put("error_code", 500)
+            .put("error_message", err.getMessage()));
+        return Future.succeededFuture(error);
+      });
   }
 
   private Set<String> extractICAOCodes(JsonArray flights) {
@@ -46,22 +66,6 @@ public class AviationServiceImpl implements AviationService {
     return f;
   }
 
-  private Future<JsonObject> fetchLatLonBulk(Set<String> iataCodes) {
-    return eventBus
-      .request(EventBusAddresses.GET_LAT_LON_BULK, new JsonArray(new ArrayList<>(iataCodes)))
-      .map(reply -> JsonObject.mapFrom(reply.body()))
-      .recover(err -> {
-        LOGGER.info("Reached recover in fetchLatLonBulk");
-        // Handle fallback if necessary
-        JsonObject error = new JsonObject()
-          .put("latlon_lookup_failed", true)
-          .put("error", new JsonObject()
-            .put("error_source", "DB")
-            .put("error_code", 500)
-            .put("error_message", err.getMessage()));
-        return Future.succeededFuture(error);
-      });
-  }
 
   private Future<JsonArray> attachWeather(JsonArray flights, JsonObject icaoToCoords) {
     List<Future> futures = new ArrayList<>();
@@ -74,7 +78,7 @@ public class AviationServiceImpl implements AviationService {
       String icao = arrival.getString("icao");
 
 
-      // DB lookup failed entirely or icao not found
+      // Json file lookup failed entirely or icao not found
       if (icao == null || icao.isBlank()) {
         arrival.put("weather", createWeatherError(400, "Missing ICAO code"));
         futures.add(Future.succeededFuture(flight));
@@ -94,7 +98,6 @@ public class AviationServiceImpl implements AviationService {
       }
 
       JsonObject latLon = icaoToCoords.getJsonObject(icao);
-      LOGGER.info(latLon);
       Future<JsonObject> weatherFuture = weatherCache.computeIfAbsent(icao, k ->
         eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_API, latLon)
           .map(resp -> new JsonObject()
@@ -161,11 +164,9 @@ public class AviationServiceImpl implements AviationService {
     template.put("success", true);
     template.put("source", "api");
 
-
     JsonObject dataObj = new JsonObject();
     dataObj.put("pagination", res.getJsonObject("pagination"));
     dataObj.put("data", groupedData);
-
 
     template.put("result", new JsonArray().add(dataObj));
     template.put("errors", "");

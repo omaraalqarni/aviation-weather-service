@@ -44,7 +44,7 @@ public class MainVerticle extends AbstractVerticle {
         vertx.deployVerticle(dbVerticle);
         vertx.deployVerticle(aviationVerticle);
         vertx.deployVerticle(weatherVerticle);
-        
+
         Router router = Router.router(vertx);
         router.route("/api/v1/*")
           .subRouter(AviationVerticle.getAviationRouter());
