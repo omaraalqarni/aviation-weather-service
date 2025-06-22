@@ -26,22 +26,16 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Promise<Void> startPromise)  {
+  public void start(Promise<Void> startPromise) {
     LOGGER.info("Started");
 
     PgPool client = PostgresConnector.getClient(vertx);
     AviationApi aviationApi = new AviationApi(vertx);
     WeatherApi weatherApi = new WeatherApi(vertx);
 
-
     AviationVerticle aviationVerticle = new AviationVerticle(aviationApi);
     DatabaseVerticle dbVerticle = new DatabaseVerticle(client);
     WeatherVerticle weatherVerticle = new WeatherVerticle(weatherApi);
-
-
-
-
-
 
     vertx.deployVerticle(new IcaoLoaderVerticle())
       .onSuccess(id -> {
@@ -50,8 +44,7 @@ public class MainVerticle extends AbstractVerticle {
         vertx.deployVerticle(dbVerticle);
         vertx.deployVerticle(aviationVerticle);
         vertx.deployVerticle(weatherVerticle);
-
-
+        
         Router router = Router.router(vertx);
         router.route("/api/v1/*")
           .subRouter(AviationVerticle.getAviationRouter());

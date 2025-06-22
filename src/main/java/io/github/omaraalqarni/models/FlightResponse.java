@@ -87,7 +87,7 @@ class FlightDetail {
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-class CodeShared{
+class CodeShared {
   @JsonProperty("airline_name")
   private String airlineName;
   @JsonProperty("airline_iata")

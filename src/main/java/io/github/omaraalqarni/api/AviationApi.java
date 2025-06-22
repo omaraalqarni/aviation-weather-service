@@ -17,7 +17,7 @@ public class AviationApi {
     this.webClient = WebClient.create(vertx);
   }
 
-  public Future<JsonObject> fetchFlights(String flightStatus, String offset, String limit){
+  public Future<JsonObject> fetchFlights(String flightStatus, String offset, String limit) {
     String apiKey = System.getenv("AVIATION_API");
     if (apiKey == null) {
       throw new RuntimeException("API_KEY environment variable is not set");
@@ -26,12 +26,13 @@ public class AviationApi {
     var request = webClient
       .get(443, "api.aviationstack.com", "/v1/flights")
       .ssl(true)
-//      .timeout(3000)
 //      .addQueryParam("flight_date", String.valueOf(LocalDate.now().minusDays(1)))
-      .addQueryParam("access_key",apiKey);
+      .timeout(3000)
+      .addQueryParam("access_key", apiKey);
 
     if (flightStatus != null) {
       request.addQueryParam("flight_status", flightStatus);
+//      .timeout(5000);
     }
     if (limit != null) {
       request.addQueryParam("limit", limit);
@@ -40,23 +41,22 @@ public class AviationApi {
       request.addQueryParam("offset", offset);
     }
 
-      request.send( asyncRes -> {
-        if (asyncRes.succeeded()){
-          if (asyncRes.result().statusCode() == 200){
-            promise.complete(asyncRes.result().bodyAsJsonObject());
+    request.send(asyncRes -> {
+      if (asyncRes.succeeded()) {
+        if (asyncRes.result().statusCode() == 200) {
+          promise.complete(asyncRes.result().bodyAsJsonObject());
 
-            LOGGER.info("Successfully fetched data from AviationStack");
+          LOGGER.info("Successfully fetched data from AviationStack");
 
-          }
-          else {
-            promise.fail(asyncRes.result().bodyAsJsonObject().encodePrettily());
-            LOGGER.info(asyncRes.result().body());
-          }
-        }else{
-          LOGGER.info("Failed to Fetch from AviationStack API, reason: \n{}", asyncRes.cause().getMessage());
-          promise.fail(asyncRes.cause().getMessage());
+        } else {
+          promise.fail(asyncRes.result().bodyAsJsonObject().encodePrettily());
+          LOGGER.info(asyncRes.result().body());
         }
-      });
+      } else {
+        LOGGER.info("Failed to Fetch from AviationStack API, reason: \n{}", asyncRes.cause().getMessage());
+        promise.fail(asyncRes.cause().getMessage());
+      }
+    });
     return promise.future();
   }
 
