@@ -221,9 +221,7 @@ public class AviationServiceImpl implements AviationService {
       .getJsonObject("arrival", new JsonObject())
       .getJsonObject("weather");
     Double lat = weatherData.getDouble("lat");
-    LOGGER.info(String.format("Latitude in doSaveData: %.4f", lat));
     Double lon = weatherData.getDouble("lon");
-    LOGGER.info(String.format("Latitude in doSaveData: %.4f", lon));
     JsonObject toBeSaved = new JsonObject()
       .put("lat", lat)
       .put("lon", lon)
