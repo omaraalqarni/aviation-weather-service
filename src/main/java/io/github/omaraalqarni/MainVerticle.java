@@ -52,9 +52,5 @@ public class MainVerticle extends AbstractVerticle {
 
       })
       .onFailure(startPromise::fail);
-
-//    vertx.deployVerticle(icaoLoaderVerticle);
-
-
   }
 }
