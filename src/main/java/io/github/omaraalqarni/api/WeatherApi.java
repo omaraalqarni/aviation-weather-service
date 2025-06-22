@@ -22,9 +22,9 @@ public class WeatherApi {
 
     String apiKey = System.getenv("WEATHER_API");
     if (apiKey == null) {
-      throw new RuntimeException("API_KEY environment variable is not set");
+      throw new RuntimeException("WEATHER_API environment variable is not set");
     }
-    var request = webClient.get(443, "api.openweathermap.org", "/data/3.0/onecall")
+    var request = webClient.get(443, "api.openweathsermap.org", "/data/3.0/onecall")
       .ssl(true)
       .addQueryParam("appid", apiKey)
       .addQueryParam("lat", String.valueOf(lat))
