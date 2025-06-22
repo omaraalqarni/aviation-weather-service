@@ -15,9 +15,8 @@ public class IcaoLoaderVerticle extends AbstractVerticle {
   private static final Logger LOGGER = LoggerFactory.getLogger(IcaoLoaderVerticle.class);
 
 
-
   @Override
-  public void start(Promise<Void> startPromise){
+  public void start(Promise<Void> startPromise) {
 
     String icaoPath = "src/main/resources/airports_by_icao.json";
 
