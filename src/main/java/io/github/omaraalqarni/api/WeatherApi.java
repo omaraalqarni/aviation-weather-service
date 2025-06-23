@@ -3,7 +3,9 @@ package io.github.omaraalqarni.api;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +26,7 @@ public class WeatherApi {
     if (apiKey == null) {
       throw new RuntimeException("WEATHER_API environment variable is not set");
     }
-    var request = webClient.get(443, "api.openweathsermap.org", "/data/3.0/onecall")
+    HttpRequest<Buffer> request = webClient.get(443, "api.openweathermap.org", "/data/3.0/onecall")
       .ssl(true)
       .addQueryParam("appid", apiKey)
       .addQueryParam("lat", String.valueOf(lat))
@@ -32,7 +34,7 @@ public class WeatherApi {
 
     request.send(ar -> {
       if (ar.succeeded()) {
-        logger.info("Fetching weather is successful");
+        logger.info("Successfully fetched data from WeatherAPI");
         promise.complete(ar.result().bodyAsJsonObject());
       } else {
         promise.fail(ar.cause().getMessage());
