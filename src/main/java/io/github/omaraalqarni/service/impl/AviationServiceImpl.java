@@ -3,6 +3,7 @@ package io.github.omaraalqarni.service.impl;
 import io.github.omaraalqarni.common.EventBusAddresses;
 import io.github.omaraalqarni.service.AviationService;
 import io.github.omaraalqarni.verticle.AviationVerticle;
+import io.github.omaraalqarni.verticle.WeatherLoaderVerticle;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.eventbus.EventBus;
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
 public class AviationServiceImpl implements AviationService {
   private final Logger LOGGER = LoggerFactory.getLogger(AviationVerticle.class);
   private final EventBus eventBus;
-  Map<String, Future<JsonObject>> weatherCache = new HashMap<>();
+  public static Map<String, Future<JsonObject>> weatherCache = new HashMap<>();
 
   public AviationServiceImpl(EventBus eventBus) {
     this.eventBus = eventBus;
@@ -28,11 +29,11 @@ public class AviationServiceImpl implements AviationService {
   @Override
   public Future<JsonObject> processAllFlights(JsonArray flights) {
     Set<String> icaoCodes = extractICAOCodes(flights);
-//    LOGGER.info(flights);
     return fetchLatLonBulk(icaoCodes)
       .compose(latLongData -> {
         return attachWeather(flights, latLongData)
           .map(enrichedFlights -> {
+            LOGGER.info("Enriched flights with weather data successfully");
             JsonObject groupedFlights = filterFlightsByDay(enrichedFlights);
             return groupedFlights;
           });
@@ -58,20 +59,20 @@ public class AviationServiceImpl implements AviationService {
   }
 
   private Set<String> extractICAOCodes(JsonArray flights) {
-    var f = flights.stream()
+    Set<String> icaoSet = flights.stream()
       .map(obj -> ((JsonObject) obj).getJsonObject("arrival").getString("icao"))
       .filter(Objects::nonNull)
       .collect(Collectors.toSet());
-    LOGGER.info(f);
-    return f;
+    LOGGER.info(icaoSet);
+    return icaoSet;
   }
 
 
-  private Future<JsonArray> attachWeather(JsonArray flights, JsonObject icaoToCoords) {
+  private Future<JsonArray> attachWeather(JsonArray flights, JsonObject latLongData) {
     List<Future> futures = new ArrayList<>();
 
-    LOGGER.info("In attachWeather");
-    boolean latlonLookupFailed = icaoToCoords.containsKey("latlon_lookup_failed");
+    LOGGER.info("Enriching flights with weather...");
+    boolean latlonLookupFailed = latLongData.containsKey("latlon_lookup_failed");
     for (int i = 0; i < flights.size(); i++) {
       JsonObject flight = flights.getJsonObject(i).copy();
       JsonObject arrival = flight.getJsonObject("arrival");
@@ -86,48 +87,52 @@ public class AviationServiceImpl implements AviationService {
       }
 
       if (latlonLookupFailed) {
-        arrival.put("weather", createWeatherError(500, icaoToCoords.getJsonObject("error").getString("error_message")));
+        arrival.put("weather", createWeatherError(500, latLongData.getJsonObject("error").getString("error_message")));
         futures.add(Future.succeededFuture(flight));
         continue;
       }
 
-      if (!icaoToCoords.containsKey(icao)) {
+      if (!latLongData.containsKey(icao)) {
         arrival.put("weather", createWeatherError(404, "ICAO code not found in database"));
         futures.add(Future.succeededFuture(flight));
         continue;
       }
 
-      JsonObject latLon = icaoToCoords.getJsonObject(icao);
-      Future<JsonObject> weatherFuture = weatherCache.computeIfAbsent(icao, k ->
-        eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_API, latLon)
-          .map(resp -> new JsonObject()
+      JsonObject latLon = latLongData.getJsonObject(icao);
+      Future<JsonObject> weatherFuture = weatherCache.computeIfAbsent(icao, k -> {
+        JsonObject fromFile = WeatherLoaderVerticle.weatherObj.getJsonObject(icao);
+
+        if (fromFile != null && fromFile.containsKey("weather")) {
+          LOGGER.info(String.format("Using weather from local file cache for ICAO %s", icao));
+          return Future.succeededFuture(new JsonObject()
             .put("success", true)
-            .put("source", "api")
-            .put("result", resp.body())
-            .put("errors", new JsonArray()))
-          .recover(apiErr ->
-            eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_DB, latLon)
-              .map(dbResp -> new JsonObject()
-                .put("success", true)
-                .put("source", "db")
-                .put("result", dbResp.body())
-                .put("errors", new JsonArray().add(
-                  new JsonObject()
-                    .put("error_source", "api.openweathermap.org/data/2.5/weather")
-                    .put("error_code", 500)
-                    .put("error_message", apiErr.getMessage())
-                ))
-              )
-          )
-          .recover(err -> Future.succeededFuture(new JsonObject()
-            .put("success", false)
-            .put("source", "db")
-            .put("result", new JsonObject())
-            .put("errors", new JsonArray().add(new JsonObject()
-              .put("error_source", "db")
-              .put("error_code", 500)
-              .put("error_message", err.getMessage())
-            ))))
+            .put("source", "json")
+            .put("result", fromFile.getJsonObject("weather"))
+            .put("errors", new JsonArray()));
+        }
+          return eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_API, latLon)
+            .map(resp -> new JsonObject()
+              .put("success", true)
+              .put("source", "api")
+              .put("result", resp.body())
+              .put("errors", new JsonArray()));
+//            .recover(apiErr -> {
+//                LOGGER.info("Weather data not available in API, retrieving from DB ");
+//                return eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_DB, latLon)
+//                  .map(dbResp -> new JsonObject()
+//                    .put("success", true)
+//                    .put("source", "db")
+//                    .put("result", dbResp.body())
+//                    .put("errors", new JsonArray().add(
+//                      new JsonObject()
+//                        .put("error_source", "api.openweathermap.org/data/2.5/weather")
+//                        .put("error_code", 500)
+//                        .put("error_message", apiErr.getMessage())
+//                    ))
+//                  );
+//              }
+//            );
+        }
       );
 
       Future<JsonObject> enrichedFlight = weatherFuture.map(weather -> {
@@ -136,13 +141,14 @@ public class AviationServiceImpl implements AviationService {
       });
       futures.add(enrichedFlight);
     }
-
     return CompositeFuture.all(futures).map(compositeFuture -> {
       JsonArray enrichedFlights = new JsonArray();
       compositeFuture.list().forEach(enrichedFlights::add);
       return enrichedFlights;
     });
   }
+
+
 
   private JsonObject createWeatherError(int code, String message) {
     return new JsonObject()
@@ -227,8 +233,5 @@ public class AviationServiceImpl implements AviationService {
       .put("lon", lon)
       .put("weather_data", weatherData);
     eventBus.<JsonObject>request(EventBusAddresses.SAVE_WEATHER_DATA, toBeSaved);
-
   }
-
-
 }

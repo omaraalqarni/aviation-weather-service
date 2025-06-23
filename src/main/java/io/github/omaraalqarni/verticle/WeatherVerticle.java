@@ -23,13 +23,11 @@ public class WeatherVerticle extends AbstractVerticle {
       JsonObject body = (JsonObject) message.body();
       double lat = body.getDouble("lat");
       double lon = body.getDouble("lon");
-      logger.info("Lat: {} Long: {}", lat, lon);
-
+      logger.info("Started fetching from weather API");
       weatherApi.fetchWeatherData(lat, lon)
         .onSuccess(message::reply)
         .onFailure(message::reply);
     });
-
 
   }
 

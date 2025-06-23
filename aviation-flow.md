@@ -51,3 +51,13 @@
 
 `Future<JsonObject> fetchWeatherData(lat,long)`
 - fetches the data required and return the future obj
+
+
+
+
+### how to optimize weather
+1. get all icaos
+2. seperate them by 6 for example
+3. store each weather in JsonObject with `icao` as key
+4. store all in JsonArray
+5. return to attachweather
