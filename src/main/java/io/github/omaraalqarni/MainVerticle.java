@@ -3,10 +3,7 @@ package io.github.omaraalqarni;
 import io.github.omaraalqarni.api.AviationApi;
 import io.github.omaraalqarni.api.WeatherApi;
 import io.github.omaraalqarni.common.PostgresConnector;
-import io.github.omaraalqarni.verticle.AviationVerticle;
-import io.github.omaraalqarni.verticle.DatabaseVerticle;
-import io.github.omaraalqarni.verticle.IcaoLoaderVerticle;
-import io.github.omaraalqarni.verticle.WeatherVerticle;
+import io.github.omaraalqarni.verticle.*;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -33,24 +30,27 @@ public class MainVerticle extends AbstractVerticle {
     AviationApi aviationApi = new AviationApi(vertx);
     WeatherApi weatherApi = new WeatherApi(vertx);
 
+
     AviationVerticle aviationVerticle = new AviationVerticle(aviationApi);
     DatabaseVerticle dbVerticle = new DatabaseVerticle(client);
     WeatherVerticle weatherVerticle = new WeatherVerticle(weatherApi);
+    WeatherLoaderVerticle weatherLoaderVerticle = new WeatherLoaderVerticle();
 
     vertx.deployVerticle(new IcaoLoaderVerticle())
       .onSuccess(id -> {
         startPromise.complete();
-
+        vertx.deployVerticle(weatherLoaderVerticle);
         vertx.deployVerticle(dbVerticle);
         vertx.deployVerticle(aviationVerticle);
         vertx.deployVerticle(weatherVerticle);
+
 
         Router router = Router.router(vertx);
         router.route("/api/v1/*")
           .subRouter(AviationVerticle.getAviationRouter());
         vertx.createHttpServer(new HttpServerOptions().setLogActivity(true)).requestHandler(router).listen(8888);
-
       })
       .onFailure(startPromise::fail);
+
   }
 }
