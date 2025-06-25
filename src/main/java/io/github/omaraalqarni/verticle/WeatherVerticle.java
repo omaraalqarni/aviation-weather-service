@@ -24,7 +24,7 @@ public class WeatherVerticle extends AbstractVerticle {
       double lat = body.getDouble("lat");
       double lon = body.getDouble("lon");
       logger.info("Started fetching from weather API");
-      weatherApi.fetchWeatherData(lat, lon)
+      weatherApi.fetchWeatherDataWeatherAPI(lat, lon)
         .onSuccess(message::reply)
         .onFailure(message::reply);
     });
