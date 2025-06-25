@@ -19,12 +19,12 @@ public class WeatherApi {
     this.webClient = WebClient.create(vertx);
   }
 
-  public Future<JsonObject> fetchWeatherData(double lat, double lon) {
+  public Future<JsonObject> fetchWeatherDataOpenWeatherAPI(double lat, double lon) {
     Promise<JsonObject> promise = Promise.promise();
 
     String apiKey = System.getenv("WEATHER_API");
     if (apiKey == null) {
-      throw new RuntimeException("WEATHER_API environment variable is not set");
+      throw new RuntimeException("OPEN WEATHER_API environment variable is not set");
     }
     HttpRequest<Buffer> request = webClient.get(443, "api.openweathermap.org", "/data/3.0/onecall")
       .ssl(true)
@@ -42,4 +42,29 @@ public class WeatherApi {
     });
     return promise.future();
   }
+
+  public Future<JsonObject> fetchWeatherDataWeatherAPI(double lat, double lon) {
+    Promise<JsonObject> promise = Promise.promise();
+    String q = String.format("%.4f,%.4f", lat,lon);
+
+    String apiKey = System.getenv("WEATHER_API_2");
+    if (apiKey == null) {
+      throw new RuntimeException("WEATHER API environment variable is not set");
+    }
+    HttpRequest<Buffer> request = webClient.get(443, "api.weatherapi.com", "/v1/current.json")
+      .ssl(true)
+      .addQueryParam("key", apiKey)
+      .addQueryParam("q", q);
+
+    request.send(ar -> {
+      if (ar.succeeded()) {
+        logger.info("Successfully fetched data from WeatherAPI");
+        promise.complete(ar.result().bodyAsJsonObject());
+      } else {
+        promise.fail(ar.cause().getMessage());
+      }
+    });
+    return promise.future();
+  }
+
 }

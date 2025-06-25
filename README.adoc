@@ -19,7 +19,9 @@ This application was generated using http://start.vertx.io
 - [ ] make sure to handle all exceptions
 - [x] implement Database Verticle
 - [x] implement db functions with weather data
-- [ ] save each weather data api call to db
+- [ ] save each weather data api call to db x
+- [ ] implement fallout api for weather api
+
 
 == Building
 

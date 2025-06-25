@@ -110,28 +110,13 @@ public class AviationServiceImpl implements AviationService {
             .put("result", fromFile.getJsonObject("weather"))
             .put("errors", new JsonArray()));
         }
+        LOGGER.info(icao);
           return eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_API, latLon)
             .map(resp -> new JsonObject()
               .put("success", true)
               .put("source", "api")
               .put("result", resp.body())
               .put("errors", new JsonArray()));
-//            .recover(apiErr -> {
-//                LOGGER.info("Weather data not available in API, retrieving from DB ");
-//                return eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_DB, latLon)
-//                  .map(dbResp -> new JsonObject()
-//                    .put("success", true)
-//                    .put("source", "db")
-//                    .put("result", dbResp.body())
-//                    .put("errors", new JsonArray().add(
-//                      new JsonObject()
-//                        .put("error_source", "api.openweathermap.org/data/2.5/weather")
-//                        .put("error_code", 500)
-//                        .put("error_message", apiErr.getMessage())
-//                    ))
-//                  );
-//              }
-//            );
         }
       );
 

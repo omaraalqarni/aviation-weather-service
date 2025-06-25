@@ -44,7 +44,7 @@ public class  AviationVerticle extends AbstractVerticle {
 
 
     LOGGER.info("Start fetching from Aviation API");
-    aviationApi.fetchFlights(flightStatus, offset, limit)
+    aviationApi.fetchByBatch(flightStatus, offset, limit)
       .compose(this::processingFlights)
       .onSuccess(finalResponse -> {
         LOGGER.info("Endpoint Fulfilled");
