@@ -10,7 +10,6 @@ public interface AviationService {
 
   Future<JsonObject> processAllFlights(JsonArray flights);
 
-  void saveWeatherDataToDb(JsonObject data);
 
 
 }

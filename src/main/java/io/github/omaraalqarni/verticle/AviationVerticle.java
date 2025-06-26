@@ -1,3 +1,4 @@
+
 package io.github.omaraalqarni.verticle;
 
 import io.github.omaraalqarni.api.AviationApi;
@@ -41,10 +42,11 @@ public class  AviationVerticle extends AbstractVerticle {
     String flightStatus = ctx.queryParams().get("flight_status");
     String limit = ctx.queryParams().get("limit");
     String offset = ctx.queryParams().get("offset");
+    String arr_icao = ctx.queryParams().get("arr_icao");
 
 
     LOGGER.info("Start fetching from Aviation API");
-    aviationApi.fetchByBatch(flightStatus, offset, limit)
+    aviationApi.fetchByBatch(flightStatus, offset, limit, arr_icao)
       .compose(this::processingFlights)
       .onSuccess(finalResponse -> {
         LOGGER.info("Endpoint Fulfilled");
@@ -52,10 +54,10 @@ public class  AviationVerticle extends AbstractVerticle {
           .setStatusCode(200)
           .putHeader("Content-Type", "application/json")
           .end(finalResponse.encodePrettily());
-//         aviationService.saveWeatherData();
       })
       .onFailure(err -> {
         LOGGER.info("end aviation api");
+        JsonObject errPayload = new JsonObject();
         var error = err.getMessage();
         ctx.response()
           .setStatusCode(500)

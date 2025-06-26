@@ -1,3 +1,4 @@
+
 package io.github.omaraalqarni.service.impl;
 
 import io.github.omaraalqarni.common.EventBusAddresses;
@@ -63,7 +64,6 @@ public class AviationServiceImpl implements AviationService {
       .map(obj -> ((JsonObject) obj).getJsonObject("arrival").getString("icao"))
       .filter(Objects::nonNull)
       .collect(Collectors.toSet());
-    LOGGER.info(icaoSet);
     return icaoSet;
   }
 
@@ -73,6 +73,10 @@ public class AviationServiceImpl implements AviationService {
 
     LOGGER.info("Enriching flights with weather...");
     boolean latlonLookupFailed = latLongData.containsKey("latlon_lookup_failed");
+
+    List<String> icaoFetchedFromApi = new ArrayList<>();
+    List<String> icaoFetchedFromDb = new ArrayList<>();
+
     for (int i = 0; i < flights.size(); i++) {
       JsonObject flight = flights.getJsonObject(i).copy();
       JsonObject arrival = flight.getJsonObject("arrival");
@@ -100,17 +104,17 @@ public class AviationServiceImpl implements AviationService {
 
       JsonObject latLon = latLongData.getJsonObject(icao);
       Future<JsonObject> weatherFuture = weatherCache.computeIfAbsent(icao, k -> {
-        JsonObject fromFile = WeatherLoaderVerticle.weatherObj.getJsonObject(icao);
+          JsonObject fromFile = WeatherLoaderVerticle.weatherObj.getJsonObject(icao);
 
-        if (fromFile != null && fromFile.containsKey("weather")) {
-          LOGGER.info(String.format("Using weather from local file cache for ICAO %s", icao));
-          return Future.succeededFuture(new JsonObject()
-            .put("success", true)
-            .put("source", "json")
-            .put("result", fromFile.getJsonObject("weather"))
-            .put("errors", new JsonArray()));
-        }
-        LOGGER.info(icao);
+          if (fromFile != null && fromFile.containsKey("weather")) {
+            icaoFetchedFromDb.add(icao);
+            return Future.succeededFuture(new JsonObject()
+              .put("success", true)
+              .put("source", "json")
+              .put("result", fromFile.getJsonObject("weather"))
+              .put("errors", new JsonArray()));
+          }
+          icaoFetchedFromApi.add(icao);
           return eventBus.<JsonObject>request(EventBusAddresses.GET_WEATHER_DATA_API, latLon)
             .map(resp -> new JsonObject()
               .put("success", true)
@@ -126,13 +130,14 @@ public class AviationServiceImpl implements AviationService {
       });
       futures.add(enrichedFlight);
     }
+    LOGGER.info(String.format("%s icaos that were fetched from api which are: %s", icaoFetchedFromApi.size(), icaoFetchedFromApi));
+    LOGGER.info(String.format("%s icaos that were fetched from DB which are: %s", icaoFetchedFromDb.size(), icaoFetchedFromDb));
     return CompositeFuture.all(futures).map(compositeFuture -> {
       JsonArray enrichedFlights = new JsonArray();
       compositeFuture.list().forEach(enrichedFlights::add);
       return enrichedFlights;
     });
   }
-
 
 
   private JsonObject createWeatherError(int code, String message) {
@@ -194,29 +199,5 @@ public class AviationServiceImpl implements AviationService {
     grouped.put("today", today);
     grouped.put("yesterday", yesterday);
     return grouped;
-  }
-
-  public void saveWeatherDataToDb(JsonObject data) {
-
-    data.getJsonArray("yesterday", new JsonArray())
-      .forEach(flightData -> doSaveWeatherData((JsonObject) flightData));
-    data.getJsonArray("today", new JsonArray())
-      .forEach(flightData -> doSaveWeatherData((JsonObject) flightData));
-    data.getJsonArray("tomorrow", new JsonArray())
-      .forEach(flightData -> doSaveWeatherData((JsonObject) flightData));
-  }
-
-
-  private void doSaveWeatherData(JsonObject flight) {
-    JsonObject weatherData = flight
-      .getJsonObject("arrival", new JsonObject())
-      .getJsonObject("weather");
-    Double lat = weatherData.getDouble("lat");
-    Double lon = weatherData.getDouble("lon");
-    JsonObject toBeSaved = new JsonObject()
-      .put("lat", lat)
-      .put("lon", lon)
-      .put("weather_data", weatherData);
-    eventBus.<JsonObject>request(EventBusAddresses.SAVE_WEATHER_DATA, toBeSaved);
   }
 }
