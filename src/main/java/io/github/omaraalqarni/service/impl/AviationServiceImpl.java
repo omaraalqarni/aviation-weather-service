@@ -139,7 +139,7 @@ public class AviationServiceImpl implements AviationService {
     }
     LOGGER.info(String.format("%s icaos that were fetched from api which are: %s", icaoFetchedFromApi.size(), icaoFetchedFromApi));
     LOGGER.info(String.format("%s icaos that were fetched from DB which are: %s", icaoFetchedFromDb.size(), icaoFetchedFromDb));
-    LOGGER.info(String.format("%s icaos that were fetched from DB which are: %s", icaoFetchedFromCache.size(), icaoFetchedFromCache));
+    LOGGER.info(String.format("%s icaos that were fetched from Cache which are: %s", icaoFetchedFromCache.size(), icaoFetchedFromCache));
     return CompositeFuture.all(futures).map(compositeFuture -> {
       JsonArray enrichedFlights = new JsonArray();
       compositeFuture.list().forEach(enrichedFlights::add);

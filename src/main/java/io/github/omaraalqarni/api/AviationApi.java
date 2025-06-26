@@ -114,12 +114,17 @@ public class AviationApi {
   private static JsonObject mergeFlights(CompositeFuture cf) {
     JsonArray mergedFlights = new JsonArray();
     JsonArray errors = new JsonArray();
-
+    int total=0;
+    int offset=0;
 
 
     for (int i = 0; i < cf.size(); i++) {
       JsonObject result = cf.resultAt(i);
       if (result.containsKey("data")) {
+        total += result.getJsonObject("pagination").getInteger("total");
+        if (i==0){
+          offset = result.getJsonObject("pagination").getInteger("offset");
+        }
         result.getJsonArray("data").forEach(mergedFlights::add);
       } else {
         errors.add(result);
@@ -127,9 +132,9 @@ public class AviationApi {
     }
     JsonObject pagination = new JsonObject()
       .put("limit",mergedFlights.size())
-      .put("offset", 0)
+      .put("offset", offset)
       .put("count",mergedFlights.size())
-      .put("total",0);
+      .put("total",total);
 
 
     return new JsonObject()
