@@ -42,13 +42,14 @@ public class AviationServiceImpl implements AviationService {
   }
 
 
-  private Future<JsonObject> fetchLatLonBulk(Set<String> iataCodes) {
+  private Future<JsonObject> fetchLatLonBulk(Set<String> icaoCodes) {
     return eventBus
-      .request(EventBusAddresses.GET_LAT_LON_BULK, new JsonArray(new ArrayList<>(iataCodes)))
-      .map(reply -> JsonObject.mapFrom(reply.body()))
+      .request(EventBusAddresses.GET_LAT_LON_BULK, new JsonArray(new ArrayList<>(icaoCodes)))
+      .map(reply -> {
+        return JsonObject.mapFrom(reply.body());
+      })
       .recover(err -> {
         LOGGER.info("Failed to fetch Lat Lon");
-        // Handle fallback if necessary
         JsonObject error = new JsonObject()
           .put("latlon_lookup_failed", true)
           .put("error", new JsonObject()
@@ -76,6 +77,7 @@ public class AviationServiceImpl implements AviationService {
 
     List<String> icaoFetchedFromApi = new ArrayList<>();
     List<String> icaoFetchedFromDb = new ArrayList<>();
+    List<String> icaoFetchedFromCache = new ArrayList<>();
 
     for (int i = 0; i < flights.size(); i++) {
       JsonObject flight = flights.getJsonObject(i).copy();
@@ -101,8 +103,13 @@ public class AviationServiceImpl implements AviationService {
         futures.add(Future.succeededFuture(flight));
         continue;
       }
+      if (weatherCache.containsKey(icao)){
+        icaoFetchedFromCache.add(icao);
+      }
+
 
       JsonObject latLon = latLongData.getJsonObject(icao);
+
       Future<JsonObject> weatherFuture = weatherCache.computeIfAbsent(icao, k -> {
           JsonObject fromFile = WeatherLoaderVerticle.weatherObj.getJsonObject(icao);
 
@@ -132,6 +139,7 @@ public class AviationServiceImpl implements AviationService {
     }
     LOGGER.info(String.format("%s icaos that were fetched from api which are: %s", icaoFetchedFromApi.size(), icaoFetchedFromApi));
     LOGGER.info(String.format("%s icaos that were fetched from DB which are: %s", icaoFetchedFromDb.size(), icaoFetchedFromDb));
+    LOGGER.info(String.format("%s icaos that were fetched from DB which are: %s", icaoFetchedFromCache.size(), icaoFetchedFromCache));
     return CompositeFuture.all(futures).map(compositeFuture -> {
       JsonArray enrichedFlights = new JsonArray();
       compositeFuture.list().forEach(enrichedFlights::add);
@@ -156,19 +164,16 @@ public class AviationServiceImpl implements AviationService {
 
 
   public JsonObject parseResponse(JsonObject res, JsonObject groupedData) {
-    JsonObject template = new JsonObject();
-    template.put("success", true);
-    template.put("source", "api");
+    JsonObject dataObj = new JsonObject()
+      .put("pagination", res.getJsonObject("pagination", res.getJsonObject("pagination")))
+      .put("data", groupedData);
 
-    JsonObject dataObj = new JsonObject();
-    dataObj.put("pagination", res.getJsonObject("pagination"));
-    dataObj.put("data", groupedData);
-
-    template.put("result", new JsonArray().add(dataObj));
-    template.put("errors", "");
-
-    return template;
+    return new JsonObject()
+      .put("success", true)
+      .put("source", "api")
+      .put("result", new JsonArray().add(dataObj));
   }
+
 
   public JsonObject filterFlightsByDay(JsonArray data) {
     LocalDate todayDate = LocalDate.now();

@@ -22,6 +22,7 @@ public class AviationApi {
   }
 
 
+
   public Future<JsonObject> fetchByBatch(String flightStatus, String offsetStr, String limitStr, String arr_icao) {
     int offset = offsetStr != null ? Integer.parseInt(offsetStr) : 0;
     int totalLimit = limitStr != null ? Integer.parseInt(limitStr) : 100;
@@ -34,21 +35,39 @@ public class AviationApi {
     }
 
     int totalBatches = (int) Math.ceil((double) totalLimit / batchSize);
+
     List<Future> batchFutures = new ArrayList<>();
     LOGGER.info("Started batch fetching");
 
     for (int i = 0; i < totalBatches; i++) {
       LOGGER.info("Started fetching batch #{}", i+1);
-
+      final int batchIndex = i;
       int batchOffset = i * batchSize + offset;
       int currentLimit = Math.min(batchSize, totalLimit - (i * batchSize));
 
-      batchFutures.add(fetchFlights(flightStatus, String.valueOf(batchOffset), String.valueOf(currentLimit), arr_icao));
-    }
+      Future<JsonObject> batch = fetchFlights(flightStatus, String.valueOf(batchOffset), String.valueOf(currentLimit), arr_icao)
+        .recover(err -> {
+          LOGGER.info("Failed to fetch batch #{}", batchIndex+1);
+          JsonObject errorObj = new JsonObject()
+            .put("error_source", "fetchFlights")
+            .put("error_code", 500)
+            .put("batch_index", batchIndex);
 
-    return CompositeFuture.all(batchFutures)
-      .map(AviationApi::mergeFlights).onSuccess(a -> LOGGER.info("Successfully fetched data from AviationStack"));
+          String msg = err.getMessage();
+          try {
+            errorObj.put("error_message", new JsonObject(msg));
+          } catch (Exception e) {
+            errorObj.put("error_message", new JsonObject().put("message", msg));
+          }
+
+          return Future.succeededFuture(errorObj);
+        });
+
+      batchFutures.add(batch);
+    }
+    return CompositeFuture.all(batchFutures).map(AviationApi::mergeFlights);
   }
+
 
   public Future<JsonObject> fetchFlights(String flightStatus, String offset, String limit, String arr_icao) {
     String apiKey = System.getenv("AVIATION_API");
@@ -85,7 +104,6 @@ public class AviationApi {
           LOGGER.info(asyncRes.result().body());
         }
       } else {
-        LOGGER.info("Failed to Fetch from AviationStack API, reason: \n{}", asyncRes.cause().getMessage());
         promise.fail(asyncRes.cause().getMessage());
       }
     });
@@ -93,17 +111,33 @@ public class AviationApi {
   }
 
 
-  private static JsonObject mergeFlights(CompositeFuture compositeFuture) {
-    JsonObject merged = new JsonObject().put("data", new JsonArray());
-    for (int i = 0; i < compositeFuture.size(); i++) {
-      JsonObject obj = compositeFuture.resultAt(i);
-      if (obj.containsKey("data")) {
-        obj.getJsonArray("data").forEach(entry ->
-          merged.getJsonArray("data").add(entry)
-        );
+  private static JsonObject mergeFlights(CompositeFuture cf) {
+    JsonArray mergedFlights = new JsonArray();
+    JsonArray errors = new JsonArray();
+
+
+
+    for (int i = 0; i < cf.size(); i++) {
+      JsonObject result = cf.resultAt(i);
+      if (result.containsKey("data")) {
+        result.getJsonArray("data").forEach(mergedFlights::add);
+      } else {
+        errors.add(result);
       }
     }
-    return merged;
+    JsonObject pagination = new JsonObject()
+      .put("limit",mergedFlights.size())
+      .put("offset", 0)
+      .put("count",mergedFlights.size())
+      .put("total",0);
+
+
+    return new JsonObject()
+      .put("success", errors.isEmpty())
+      .put("source", "api")
+      .put("pagination", pagination)
+      .put("data", mergedFlights)
+      .put("errors", errors);
   }
 }
 
