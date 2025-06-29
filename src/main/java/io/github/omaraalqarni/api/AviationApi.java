@@ -121,8 +121,9 @@ public class AviationApi {
     for (int i = 0; i < cf.size(); i++) {
       JsonObject result = cf.resultAt(i);
       if (result.containsKey("data")) {
-        total += result.getJsonObject("pagination").getInteger("total");
+
         if (i==0){
+          total = result.getJsonObject("pagination").getInteger("total");
           offset = result.getJsonObject("pagination").getInteger("offset");
         }
         result.getJsonArray("data").forEach(mergedFlights::add);
