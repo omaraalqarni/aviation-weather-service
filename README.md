@@ -1,10 +1,12 @@
-= Flight-weather-service
+# Flight-weather-service
 
-image:https://img.shields.io/badge/vert.x-4.3.8-purple.svg[link="https://vertx.io"]
+
+![dd](https://img.shields.io/badge/vert.x-4.3.8-purple.svg)
+
 
 This application was generated using http://start.vertx.io
 
-=== Tasks
+### Tasks
 - [x] Implement AviationVerticle.
   - [x] Implement `GET/flights`.
 - [x] fetch data from AviationStack.
@@ -19,29 +21,23 @@ This application was generated using http://start.vertx.io
 - [ ] make sure to handle all exceptions
 - [x] implement Database Verticle
 - [x] implement db functions with weather data
-- [ ] save each weather data api call to db x
-- [ ] implement fallout api for weather api
+- [ ] save each weather data api call to db (x)
+- [x] implement fallout api for weather api.
+- [x] demultiplex flight request to multiple concurrent requests.
 
 
-== Building
+## Building
 
 To launch your tests:
 
-[source]
-----
-./mvnw clean test
-----
+`./mvnw clean test`
 
 To package your application:
 
-[source]
-----
-./mvnw clean package
-----
+`./mvnw clean package`
+
 
 To run your application:
 
-[source]
-----
-./mvnw clean compile exec:java
-----
+`./mvnw clean compile exec:java`
+

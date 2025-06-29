@@ -1,3 +1,4 @@
+
 package io.github.omaraalqarni.verticle;
 
 import io.github.omaraalqarni.api.AviationApi;
@@ -11,6 +12,8 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+
+import java.util.List;
 
 
 public class  AviationVerticle extends AbstractVerticle {
@@ -39,27 +42,71 @@ public class  AviationVerticle extends AbstractVerticle {
     LOGGER.info("Flights endpoint here");
 
     String flightStatus = ctx.queryParams().get("flight_status");
-    String limit = ctx.queryParams().get("limit");
-    String offset = ctx.queryParams().get("offset");
+    String limitStr = ctx.queryParams().get("limit");
+    String offsetStr = ctx.queryParams().get("offset");
+    String arr_icao = ctx.queryParams().get("arr_icao");
+    JsonArray errors = new JsonArray();
 
+    List<String> validStatuses = List.of("scheduled", "active", "landed", "cancelled", "incident", "diverted", "");
+
+    if (flightStatus != null && !validStatuses.contains(flightStatus.toLowerCase())) {
+      errors.add(new JsonObject()
+        .put("error_source", "flight_status")
+        .put("error_code", 400)
+        .put("error_message", "Invalid flight_status: " + flightStatus));
+    }
+
+    try {
+      if (limitStr != null) {
+        int limit = Integer.parseInt(limitStr);
+        if (limit < 0 || limit > 100) {
+          errors.add(new JsonObject().put("error_source", "limit").put("error_code", 400).put("error_message", "limit must be 0-100"));
+        }
+      }
+    } catch (NumberFormatException e) {
+      errors.add(new JsonObject().put("error_source", "limit").put("error_code", 400).put("error_message", "limit must be an integer"));
+    }
+
+    try {
+      if (offsetStr != null) {
+        int offset = Integer.parseInt(offsetStr);
+        if (offset < 0 || offset > 100) {
+          errors.add(new JsonObject().put("error_source", "offset").put("error_code", 400).put("error_message", "offset must be 0-100"));
+        }
+      }
+    } catch (NumberFormatException e) {
+      errors.add(new JsonObject().put("error_source", "offset").put("error_code", 400).put("error_message", "offset must be an integer"));
+    }
+
+    if (!errors.isEmpty()) {
+      JsonObject response = new JsonObject()
+        .put("success", false)
+        .put("source", "api")
+        .put("result", new JsonArray())
+        .put("errors", errors);
+      ctx.response().setStatusCode(400).putHeader("Content-Type", "application/json").end(response.encodePrettily());
+      return;
+    }
 
     LOGGER.info("Start fetching from Aviation API");
-    aviationApi.fetchByBatch(flightStatus, offset, limit)
+    aviationApi.fetchByBatch(flightStatus, offsetStr, limitStr, arr_icao)
       .compose(this::processingFlights)
-      .onSuccess(finalResponse -> {
-        LOGGER.info("Endpoint Fulfilled");
+      .onSuccess(resp -> {
         ctx.response()
           .setStatusCode(200)
           .putHeader("Content-Type", "application/json")
-          .end(finalResponse.encodePrettily());
-//         aviationService.saveWeatherData();
+          .end(resp.encodePrettily());
       })
       .onFailure(err -> {
-        LOGGER.info("end aviation api");
-        var error = err.getMessage();
-        ctx.response()
-          .setStatusCode(500)
-          .end(String.format("Error: %s", error));
+        JsonObject errPayload = new JsonObject()
+          .put("success", false)
+          .put("source", "api")
+          .put("result", new JsonArray())
+          .put("errors", new JsonArray().add(new JsonObject()
+            .put("error_source", "unknown")
+            .put("error_code", 500)
+            .put("error_message", err.getMessage())));
+        ctx.response().setStatusCode(500).putHeader("Content-Type", "application/json").end(errPayload.encodePrettily());
       });
   }
 
@@ -73,11 +120,15 @@ public class  AviationVerticle extends AbstractVerticle {
   }
 
   private Future<JsonObject> processingFlights(JsonObject res) {
-    JsonArray rawFlights = res.getJsonArray("data");
-    LOGGER.info("Started processing flights");
-    Future<JsonObject> map = aviationService.processAllFlights(rawFlights)
-      .map(grouped -> aviationService.parseResponse(res, grouped));
-    LOGGER.info("Ended processing flights");
-    return map;
+    JsonArray rawFlights = res.getJsonArray("data", new JsonArray());
+    JsonArray errorList = res.getJsonArray("errors", new JsonArray());
+
+    return aviationService.processAllFlights(rawFlights)
+      .map(grouped -> {
+        JsonObject response = aviationService.parseResponse(res, grouped);
+        response.put("errors", errorList); // embed batch-level errors
+        return response;
+      });
   }
+
 }

@@ -56,7 +56,6 @@ public class WeatherLoaderVerticle extends AbstractVerticle {
 
   void weatherRefresh() {
     LOGGER.info("Updating weather data");
-    //TODO include date
     LocalDateTime expiryTime = LocalDateTime.now().minusHours(3);
     String dataTime = weatherObj.getJsonObject("OMDB").getString("time", "");
 
