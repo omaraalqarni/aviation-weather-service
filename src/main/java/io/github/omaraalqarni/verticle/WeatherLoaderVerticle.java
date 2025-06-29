@@ -5,6 +5,8 @@ import io.vertx.config.ConfigRetriever;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
@@ -13,7 +15,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class WeatherLoaderVerticle extends AbstractVerticle {
 
@@ -39,6 +43,7 @@ public class WeatherLoaderVerticle extends AbstractVerticle {
     icaoRetriever.getConfig()
       .onSuccess(config -> {
         weatherObj = config;
+//        updateWeatherDb();
         weatherRefresh();
         LOGGER.info("Loaded weather data from file.");
         startPromise.complete();
@@ -51,7 +56,7 @@ public class WeatherLoaderVerticle extends AbstractVerticle {
 
   void weatherRefresh() {
     LOGGER.info("Updating weather data");
-    LocalTime expiryTime = LocalTime.now().minusHours(5);
+    LocalDateTime expiryTime = LocalDateTime.now().minusHours(3);
     String dataTime = weatherObj.getJsonObject("OMDB").getString("time", "");
 
     if (dataTime.isEmpty()) {
@@ -61,7 +66,7 @@ public class WeatherLoaderVerticle extends AbstractVerticle {
     }
 
     try {
-      LocalTime weatherDate = LocalTime.parse(dataTime);
+      LocalDateTime weatherDate = LocalDateTime.parse(dataTime);
       if (weatherDate.isBefore(expiryTime)) {
         updateWeatherDb();
       }
@@ -74,8 +79,9 @@ public class WeatherLoaderVerticle extends AbstractVerticle {
 
   private void updateWeatherDb() {
     LOGGER.info("updating DB weather data");
+    LocalDateTime currentTime = LocalDateTime.now();
 
-    LocalTime currentTime = LocalTime.now();
+    List<Future> futures = new ArrayList<>();
 
     for (String icao : weatherObj.fieldNames()) {
       LOGGER.info("Updating weather for icao: {}", icao);
@@ -83,15 +89,22 @@ public class WeatherLoaderVerticle extends AbstractVerticle {
       Double lat = currentIcaoObj.getDouble("lat");
       Double lon = currentIcaoObj.getDouble("lon");
 
-      new WeatherApi(vertx).fetchWeatherData(lat, lon)
+      Future<Void> fetchFuture = new WeatherApi(vertx).fetchWeatherDataOpenWeatherAPI(lat, lon)
         .onSuccess(weatherFetched -> {
           LOGGER.info("Fetched weather for {}", icao);
-          writeWeatherData();
           currentIcaoObj.put("weather", weatherFetched);
           currentIcaoObj.put("time", currentTime.toString());
         })
-        .onFailure(err -> LOGGER.info("Failed to fetch weather for {}", icao));
+        .onFailure(err -> LOGGER.info("Failed to fetch weather for {}", icao))
+        .mapEmpty(); // Convert to Future<Void> for CompositeFuture
+
+      futures.add(fetchFuture);
     }
+
+    CompositeFuture.all(futures).onComplete(ar -> {
+      writeWeatherData();
+      LOGGER.info("All weather updates complete and written to file.");
+    });
   }
 
 
@@ -99,10 +112,10 @@ public class WeatherLoaderVerticle extends AbstractVerticle {
     try {
       String updatedJson = weatherObj.encodePrettily();
       Files.write(Paths.get("src/main/resources/airports_weather.json"), updatedJson.getBytes());
-      LOGGER.info("Updated weather db");
     } catch (IOException e) {
       LOGGER.error("Failed to persist weather data", e);
     }
+    LOGGER.info("Updated weather db");
   }
 
 
